@@ -7,6 +7,8 @@ import EmployeeManage from "./Pages/EmployeeManage";
 import Attendence from "./Pages/Attendance.jsx";
 import LeavePage from "./Pages/LeavePage.jsx";
 import PayrollPage from './Pages/PayrollPage.jsx'
+import ReportPage from './Pages/ReportPage.jsx'
+import ProfilePage from './Pages/ProfilePage.jsx'
 
 const AdminRoutes = () => {
   if (!isAdminLoggedIn()) return <Navigate to="/" replace />;
@@ -14,7 +16,7 @@ const AdminRoutes = () => {
   return (
     <div className="flex bg-gray-50 min-h-screen text-gray-900">
       <Sidebar />
-      <main className="flex-1 p-6">
+      <main className="flex-1 p-6 ml-64">
         <Routes>
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="employee" element={<EmployeeList />} />
@@ -22,6 +24,9 @@ const AdminRoutes = () => {
           <Route path="attendance" element={<Attendence />} />
           <Route path="leave" element={<LeavePage />} />
           <Route path="payroll" element={<PayrollPage />} />
+          <Route path="reports" element={<ReportPage />} />  
+          <Route path="profile" element={<ProfilePage />} />
+
 
           {/* Add more admin routes here */}
         </Routes>

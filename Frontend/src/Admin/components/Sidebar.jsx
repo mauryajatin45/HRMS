@@ -16,7 +16,7 @@ export default function Sidebar() {
   const location = useLocation();
 
   return (
-    <aside className="w-64 bg-white h-screen shadow-md p-4 space-y-2">
+<aside className="fixed w-64 bg-white h-screen shadow-md p-4 space-y-2">
       {navItems.map(({ name, icon: Icon, link }) => {
         const isActive = location.pathname === link;
         return (
