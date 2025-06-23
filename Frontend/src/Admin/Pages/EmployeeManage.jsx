@@ -7,7 +7,8 @@ export default function EmployeeManage() {
     name: 'John Doe',
     email: 'john@example.com',
     position: 'Frontend Developer',
-    startDate: '2024-01-01'
+    startDate: '2024-01-01',
+    isActive: true // New field for employment status
   });
 
   const [docsInfo, setDocsInfo] = useState({
@@ -19,8 +20,11 @@ export default function EmployeeManage() {
   });
 
   const handleBasicInfoChange = (e) => {
-    const { name, value } = e.target;
-    setBasicInfo(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setBasicInfo(prev => ({ 
+      ...prev, 
+      [name]: type === 'checkbox' ? checked : value 
+    }));
   };
 
   const handleDocsInfoChange = (e) => {
@@ -29,7 +33,7 @@ export default function EmployeeManage() {
   };
 
   const handleSubmit = (section) => {
-    console.log(`Saved ${section} data`);
+    console.log(`Saved ${section} data`, section === 'basic' ? basicInfo : docsInfo);
     // API call would go here
   };
 
@@ -107,6 +111,33 @@ export default function EmployeeManage() {
               onChange={handleBasicInfoChange}
               className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500"
             />
+          </div>
+          
+          {/* Employment Status Toggle */}
+          <div className="md:col-span-2 pt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Employment Status
+            </label>
+            <div className="flex items-center">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="isActive"
+                  checked={basicInfo.isActive}
+                  onChange={handleBasicInfoChange}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                <span className="ml-3 text-sm font-medium text-gray-900">
+                  {basicInfo.isActive ? 'Active' : 'Inactive (Left the company)'}
+                </span>
+              </label>
+            </div>
+            <p className="mt-1 text-sm text-gray-500">
+              {basicInfo.isActive 
+                ? "Employee currently works at the company" 
+                : "Employee has left the company and no longer has access"}
+            </p>
           </div>
         </div>
       </section>

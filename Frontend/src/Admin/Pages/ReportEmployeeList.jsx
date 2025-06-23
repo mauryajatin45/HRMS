@@ -94,11 +94,11 @@ const ReportEmployeeList = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <title>Reports | Admin</title>
       {/* Header */}
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
+      <header className="">
+        <div className="max-w-7xl mx-auto px-4 py-2 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Employee Reports</h1>
@@ -138,7 +138,7 @@ const ReportEmployeeList = () => {
             </div>
           </div>
           
-          <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+          {/* <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
             <div className="flex items-center">
               <div className="bg-yellow-100 p-3 rounded-lg mr-4">
                 <Calendar className="h-6 w-6 text-yellow-600" />
@@ -148,7 +148,7 @@ const ReportEmployeeList = () => {
                 <p className="text-2xl font-bold">{newHires}</p>
               </div>
             </div>
-          </div>
+          </div> */}
           
           <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
             <div className="flex items-center">

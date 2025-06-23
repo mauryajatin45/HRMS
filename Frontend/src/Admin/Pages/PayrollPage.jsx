@@ -267,10 +267,10 @@ export default function PayrollPage() {
         <div>
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+            {/* <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
               <div className="text-gray-500 text-sm">Total Payroll</div>
               <div className="text-2xl font-bold text-gray-800 mt-1">{formatCurrency(totalPayroll)}</div>
-            </div>
+            </div> */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
               <div className="text-gray-500 text-sm">Total Employees</div>
               <div className="text-2xl font-bold text-indigo-600 mt-1">{filteredData.length}</div>
