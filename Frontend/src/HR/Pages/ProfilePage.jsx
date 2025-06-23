@@ -50,6 +50,7 @@ const ProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <title>HR Profile | Shivaurica</title>
       <div className="max-w-4xl mx-auto">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-10">
           <div>

@@ -10,7 +10,11 @@ import {
   Mail,
   Phone,
   ChevronDown,
-  Briefcase
+  Briefcase,
+  HeartPulse,
+  Coffee,
+  Sun,
+  Zap
 } from 'lucide-react';
 
 const EmployeeManagementPage = () => {
@@ -82,7 +86,7 @@ const EmployeeManagementPage = () => {
     },
   ];
 
-  // Employee details
+  // Employee details with leave balances
   const employeeDetails = {
     1: {
       attendance: [
@@ -100,9 +104,49 @@ const EmployeeManagementPage = () => {
         { date: '2023-07-05', base: 8500, bonus: 1500, deduction: 350, net: 9650 },
         { date: '2023-06-05', base: 8500, bonus: 900, deduction: 350, net: 9050 },
         { date: '2023-05-05', base: 8500, bonus: 1100, deduction: 350, net: 9250 },
-      ]
+      ],
+      leaveBalances: {
+        sick: { total: 7, used: 3, remaining: 4 },
+        casual: { total: 7, used: 5, remaining: 2 },
+      }
     },
     // Similar data for other employees...
+    2: {
+      // ... other data
+      leaveBalances: {
+        sick: { total: 10, used: 2, remaining: 8 },
+        casual: { total: 12, used: 4, remaining: 8 },
+        vacation: { total: 20, used: 10, remaining: 10 },
+        emergency: { total: 5, used: 0, remaining: 5 }
+      }
+    },
+    3: {
+      // ... other data
+      leaveBalances: {
+        sick: { total: 10, used: 5, remaining: 5 },
+        casual: { total: 12, used: 3, remaining: 9 },
+        vacation: { total: 20, used: 15, remaining: 5 },
+        emergency: { total: 5, used: 2, remaining: 3 }
+      }
+    },
+    4: {
+      // ... other data
+      leaveBalances: {
+        sick: { total: 10, used: 1, remaining: 9 },
+        casual: { total: 12, used: 6, remaining: 6 },
+        vacation: { total: 20, used: 5, remaining: 15 },
+        emergency: { total: 5, used: 0, remaining: 5 }
+      }
+    },
+    5: {
+      // ... other data
+      leaveBalances: {
+        sick: { total: 10, used: 4, remaining: 6 },
+        casual: { total: 12, used: 2, remaining: 10 },
+        vacation: { total: 20, used: 12, remaining: 8 },
+        emergency: { total: 5, used: 3, remaining: 2 }
+      }
+    }
   };
 
   // Calculate attendance stats
@@ -115,6 +159,11 @@ const EmployeeManagementPage = () => {
       late: attendance.filter(a => a.status === 'Late').length,
       absent: 22 - (attendance.filter(a => a.status === 'Present').length + attendance.filter(a => a.status === 'Late').length)
     };
+  };
+
+  // Calculate leave usage percentage
+  const calculateLeavePercentage = (used, total) => {
+    return Math.round((used / total) * 100);
   };
 
   const attendanceStats = getAttendanceStats();
@@ -137,6 +186,9 @@ const EmployeeManagementPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <title>
+        Employee Management - {employee.name} | Admin
+      </title>
       {/* Header */}
       <header className="">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
@@ -286,6 +338,68 @@ const EmployeeManagementPage = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+        
+        {/* Leave Balances */}
+        <div className="mt-8">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Leave Balances</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Sick Leave */}
+            <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+              <div className="flex items-center mb-4">
+                <div className="bg-red-100 p-3 rounded-lg mr-4">
+                  <HeartPulse className="h-6 w-6 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Sick Leave</p>
+                  <p className="text-2xl font-bold">
+                    {employeeDetails[id]?.leaveBalances?.sick?.remaining} days
+                  </p>
+                </div>
+              </div>
+              <div className="mt-2">
+                <div className="flex justify-between text-sm text-gray-600 mb-1">
+                  <span>Used: {employeeDetails[id]?.leaveBalances?.sick?.used}/{employeeDetails[id]?.leaveBalances?.sick?.total}</span>
+                  <span>{calculateLeavePercentage(employeeDetails[id]?.leaveBalances?.sick?.used, employeeDetails[id]?.leaveBalances?.sick?.total)}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-red-500 h-2 rounded-full" 
+                    style={{ width: `${calculateLeavePercentage(employeeDetails[id]?.leaveBalances?.sick?.used, employeeDetails[id]?.leaveBalances?.sick?.total)}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Casual Leave */}
+            <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+              <div className="flex items-center mb-4">
+                <div className="bg-blue-100 p-3 rounded-lg mr-4">
+                  <Coffee className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Casual Leave</p>
+                  <p className="text-2xl font-bold">
+                    {employeeDetails[id]?.leaveBalances?.casual?.remaining} days
+                  </p>
+                </div>
+              </div>
+              <div className="mt-2">
+                <div className="flex justify-between text-sm text-gray-600 mb-1">
+                  <span>Used: {employeeDetails[id]?.leaveBalances?.casual?.used}/{employeeDetails[id]?.leaveBalances?.casual?.total}</span>
+                  <span>{calculateLeavePercentage(employeeDetails[id]?.leaveBalances?.casual?.used, employeeDetails[id]?.leaveBalances?.casual?.total)}%</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-blue-500 h-2 rounded-full" 
+                    style={{ width: `${calculateLeavePercentage(employeeDetails[id]?.leaveBalances?.casual?.used, employeeDetails[id]?.leaveBalances?.casual?.total)}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+            
           </div>
         </div>
         
