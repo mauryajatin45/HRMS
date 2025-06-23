@@ -22,6 +22,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
+      <title>Dashboard | HR</title>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-800">HR Dashboard</h1>
         <div className="text-sm text-gray-600 font-medium mt-2 sm:mt-0">

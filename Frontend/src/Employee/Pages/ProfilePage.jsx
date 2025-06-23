@@ -12,7 +12,7 @@ export default function Profile() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-blue-800 mb-8">My Profile</h1>
-      
+      <title>Profile | Employee</title>
       <div className="bg-white rounded-lg shadow-md p-6 max-w-3xl">
         <div className="flex items-center mb-8">
           <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" />
