@@ -2,13 +2,12 @@ import { Home, Users, CalendarDays, FileText, BarChart2, User, LogOut } from 'lu
 import { useLocation, Link } from 'react-router-dom';
 
 const navItems = [
-  { name: 'Dashboard', icon: Home, link: '/admin/dashboard' },
-  { name: 'Employee', icon: Users, link: '/admin/employee', matchPrefix: '/admin/employee' },
-  { name: 'Attendance', icon: CalendarDays, link: '/admin/attendance' },
-  { name: 'Leave', icon: FileText, link: '/admin/leave' },
-  { name: 'Payroll', icon: FileText, link: '/admin/payroll' },
-  { name: 'Reports', icon: BarChart2, link: '/admin/reports' , matchPrefix: '/admin/reports' },
-  { name: 'Profile', icon: User, link: '/admin/profile' },
+  { name: 'Dashboard', icon: Home, link: '/hr/dashboard' },
+  { name: 'Employee', icon: Users, link: '/hr/employee', matchPrefix: '/hr/employee' },
+  { name: 'Attendance', icon: CalendarDays, link: '/hr/attendance' },
+  { name: 'Leave', icon: FileText, link: '/hr/leave' },
+  { name: 'Reports', icon: BarChart2, link: '/hr/reports' , matchPrefix: '/hr/reports' },
+  { name: 'Profile', icon: User, link: '/hr/profile' },
   { name: 'Logout', icon: LogOut, link: '/logout' }
 ];
 

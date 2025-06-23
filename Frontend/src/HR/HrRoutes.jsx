@@ -1,13 +1,12 @@
 // src/AdminRoutes.jsx
 import { Navigate, Route, Routes } from "react-router-dom";
-import { isAdminLoggedIn } from "../utils/auth";
-import Sidebar from "./components/Sidebar";
-import Dashboard from "./Pages/Dashboard";
-import ReportEmployeeList from "./Pages/ReportEmployeeList";
+import { isAdminLoggedIn } from "../utils/auth.js";
+import Sidebar from "./components/Sidebar.jsx";
+import Dashboard from "./Pages/Dashboard.jsx";
+import ReportEmployeeList from "./Pages/ReportEmployeeList.jsx";
 import EmployeeManagementPage from "./Pages/ReportManagementPage.jsx";
 import Attendence from "./Pages/Attendance.jsx";
 import LeavePage from "./Pages/LeavePage.jsx";
-import PayrollPage from './Pages/PayrollPage.jsx';
 import ProfilePage from './Pages/ProfilePage.jsx';
 import EmployeeList from "./Pages/EmployeeList.jsx";
 import EmployeeManage from "./Pages/EmployeeManage.jsx";
@@ -27,7 +26,6 @@ const AdminRoutes = () => {
           <Route path="employee/manage/:id" element={<EmployeeManage />} />
           <Route path="attendance" element={<Attendence />} />
           <Route path="leave" element={<LeavePage />} />
-          <Route path="payroll" element={<PayrollPage />} />
           <Route path="profile" element={<ProfilePage />} />
         </Routes>
       </main>
