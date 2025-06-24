@@ -23,7 +23,7 @@ export default function Sidebar({ sidebarOpen, closeSidebar }) {
   return (
     <div
       className={
-        "fixed inset-y-0 left-0 w-64 bg-white h-screen shadow-md p-4 space-y-2 transform transition-transform duration-300 " +
+        "fixed inset-y-0 left-0 w-64 bg-white shadow-md p-4 space-y-2 transform transition-transform duration-300 " +
         (sidebarOpen ? "translate-x-0" : "-translate-x-full") +
         " md:translate-x-0"
       }

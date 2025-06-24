@@ -1,0 +1,128 @@
+const Attendance = require('../models/Attendance');
+const Leave = require('../models/Leave');
+const User = require('../models/User');
+const moment = require('moment-timezone');
+
+// Clock in
+exports.clockIn = async (req, res) => {
+  try {
+    const indiaTime = moment().tz('Asia/Kolkata');
+    const isLate = indiaTime.hour() > 10 || (indiaTime.hour() === 10 && indiaTime.minute() > 20);
+    
+    const attendance = new Attendance({
+      user: req.user.id,
+      clockIn: new Date(),
+      status: isLate ? 'late' : 'present'
+    });
+
+    await attendance.save();
+    res.json(attendance);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+// Clock out
+exports.clockOut = async (req, res) => {
+  const { notes } = req.body;
+
+  try {
+    let attendance = await Attendance.findOne({ 
+      user: req.user.id,
+      date: { 
+        $gte: new Date().setHours(0,0,0,0),
+        $lt: new Date().setHours(23,59,59,999)
+      }
+    });
+
+    if (!attendance) return res.status(400).json({ msg: 'No clock-in record found' });
+
+    attendance.clockOut = new Date();
+    attendance.notes = notes;
+    
+    await attendance.save();
+    res.json(attendance);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+// Apply for leave
+exports.applyLeave = async (req, res) => {
+  const { type, startDate, endDate } = req.body;
+
+  try {
+    const user = await User.findById(req.user.id).populate('employee');
+    if (!user.employee) return res.status(400).json({ msg: 'Employee record not found' });
+
+    // Check leave balance
+    if ((type === 'casual' && user.employee.casualLeaves <= 0) || 
+        (type === 'sick' && user.employee.sickLeaves <= 0)) {
+      return res.status(400).json({ msg: 'Insufficient leave balance' });
+    }
+
+    const leave = new Leave({
+      user: req.user.id,
+      type,
+      startDate,
+      endDate
+    });
+
+    await leave.save();
+    res.json(leave);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+// Get employee profile
+exports.getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id)
+      .select('-password -__v')
+      .populate('employee', '-user -__v');
+
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+
+    res.json(user);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+// Get attendance history
+exports.getAttendanceHistory = async (req, res) => {
+  try {
+    const { month, year } = req.query;
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0);
+    
+    const attendance = await Attendance.find({
+      user: req.user.id,
+      date: { $gte: startDate, $lte: endDate }
+    }).sort({ date: -1 });
+
+    res.json(attendance);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+// Get payroll history
+exports.getPayrollHistory = async (req, res) => {
+  try {
+    const payrolls = await Payroll.find({ user: req.user.id })
+      .sort({ paymentDate: -1 })
+      .limit(6);
+
+    res.json(payrolls);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
