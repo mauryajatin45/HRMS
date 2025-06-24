@@ -1,13 +1,6 @@
 // src/pages/Dashboard.js
 import { useState, useEffect } from "react";
-import {
-  Calendar,
-  Clock,
-  FileText,
-  X,
-  CheckCircle,
-  Clock as ClockIcon,
-} from "lucide-react";
+import { Calendar, FileText, X, CheckCircle, Clock } from "lucide-react";
 import { Helmet } from "react-helmet";
 
 export default function Dashboard() {
@@ -16,10 +9,8 @@ export default function Dashboard() {
   const [showClockOutDialog, setShowClockOutDialog] = useState(false);
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [dailyNote, setDailyNote] = useState("");
-  const [leaveRequests, setLeaveRequests] = useState([
-    { id: 1, type: "Sick Leave", date: "2023-06-15", status: "Approved" },
-    { id: 2, type: "Casual Leave", date: "2023-06-20", status: "Pending" },
-  ]);
+  const [leaveHistory, setLeaveHistory] = useState([]);
+  const [stats, setStats] = useState({ present: 0, absent: 0, late: 0 });
 
   // Leave request form state
   const [leaveType, setLeaveType] = useState("Casual Leave");
@@ -27,13 +18,25 @@ export default function Dashboard() {
   const [endDate, setEndDate] = useState("");
   const [leaveReason, setLeaveReason] = useState("");
 
-  const handleClockIn = () => {
-    setShowClockInDialog(true);
-  };
-  const [stats, setStats] = useState({ present: 0, absent: 0, late: 0 });
-
   useEffect(() => {
     const token = localStorage.getItem("token");
+
+    const fetchAttendanceStatus = async () => {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/employee/attendance/status`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setClockedIn(data.clockedIn);
+        }
+      } catch (err) {
+        console.error("Failed to load attendance status", err);
+      }
+    };
 
     const fetchStats = async () => {
       try {
@@ -43,16 +46,39 @@ export default function Dashboard() {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-
-        const data = await res.json();
-        if (res.ok) setStats(data);
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data);
+        }
       } catch (err) {
         console.error("Failed to load attendance stats", err);
       }
     };
 
+    const fetchLeaves = async () => {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/employee/leave`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setLeaveHistory(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch leave history", err);
+      }
+    };
+
+    fetchAttendanceStatus();
     fetchStats();
+    fetchLeaves();
   }, []);
+
+  const handleClockIn = () => setShowClockInDialog(true);
+  const handleClockOut = () => setShowClockOutDialog(true);
 
   const confirmClockIn = async () => {
     try {
@@ -75,17 +101,12 @@ export default function Dashboard() {
         return;
       }
 
-      alert("Clocked in successfully!");
       setClockedIn(true);
       setShowClockInDialog(false);
     } catch (err) {
       console.error("Clock-in error:", err);
       alert("Server error. Try again.");
     }
-  };
-
-  const handleClockOut = () => {
-    setShowClockOutDialog(true);
   };
 
   const confirmClockOut = async () => {
@@ -109,7 +130,6 @@ export default function Dashboard() {
         return;
       }
 
-      alert("Clocked out successfully!");
       setClockedIn(false);
       setDailyNote("");
       setShowClockOutDialog(false);
@@ -119,23 +139,46 @@ export default function Dashboard() {
     }
   };
 
-  const handleRequestLeave = () => {
-    // In a real app, you would submit to backend here
-    const newRequest = {
-      id: leaveRequests.length + 1,
-      type: leaveType,
-      date: startDate,
-      status: "Pending",
-    };
+  const handleRequestLeave = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/employee/leave`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            type: leaveType.toLowerCase().replace(" leave", ""),
+            startDate,
+            endDate,
+            reason: leaveReason,
+          }),
+        }
+      );
 
-    setLeaveRequests([newRequest, ...leaveRequests]);
-    setShowLeaveDialog(false);
+      const data = await res.json();
 
-    // Reset form
-    setLeaveType("Casual Leave");
-    setStartDate("");
-    setEndDate("");
-    setLeaveReason("");
+      if (!res.ok) {
+        alert(data.msg || "Leave request failed");
+        return;
+      }
+
+      // Update leave history
+      setLeaveHistory([data, ...leaveHistory]);
+      setShowLeaveDialog(false);
+
+      // Reset form
+      setLeaveType("Casual Leave");
+      setStartDate("");
+      setEndDate("");
+      setLeaveReason("");
+    } catch (err) {
+      console.error("Leave request error:", err);
+      alert("Something went wrong!");
+    }
   };
 
   return (
@@ -156,7 +199,7 @@ export default function Dashboard() {
               : "bg-blue-100 hover:bg-blue-200 text-blue-700"
           }`}
         >
-          <ClockIcon size={20} />
+          <Clock size={20} />
           {clockedIn ? "Clock Out" : "Clock In"}
         </button>
       </div>
@@ -201,33 +244,39 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {leaveRequests.length === 0 ? (
+        {leaveHistory.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <FileText className="mx-auto mb-2" size={24} />
             <p>No leave requests yet</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {leaveRequests.map((request) => (
+            {leaveHistory.map((request) => (
               <div
-                key={request.id}
+                key={request._id}
                 className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
               >
                 <div>
-                  <p className="font-medium">{request.type}</p>
-                  <p className="text-sm text-gray-500">{request.date}</p>
+                  <p className="font-medium capitalize">{request.type} Leave</p>
+                  <p className="text-sm text-gray-500">
+                    {new Date(request.startDate).toLocaleDateString("en-IN")} to{" "}
+                    {new Date(request.endDate).toLocaleDateString("en-IN")}
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    Reason: {request.reason}
+                  </p>
                 </div>
                 <div>
                   <span
-                    className={`px-3 py-1 rounded-full text-sm ${
-                      request.status === "Approved"
-                        ? "bg-green-100 text-green-800"
-                        : request.status === "Rejected"
-                        ? "bg-red-100 text-red-800"
-                        : "bg-yellow-100 text-yellow-800"
+                    className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                      request.status === "approved"
+                        ? "bg-green-100 text-green-700"
+                        : request.status === "rejected"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-yellow-100 text-yellow-700"
                     }`}
                   >
-                    {request.status}
+                    {request.status.toUpperCase()}
                   </span>
                 </div>
               </div>

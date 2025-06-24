@@ -64,7 +64,7 @@ exports.clockOut = async (req, res) => {
 
 // Apply for leave
 exports.applyLeave = async (req, res) => {
-  const { type, startDate, endDate } = req.body;
+  const { type, startDate, endDate, reason } = req.body; // ✅ include reason
 
   try {
     const user = await User.findById(req.user.id).populate('employee');
@@ -80,7 +80,8 @@ exports.applyLeave = async (req, res) => {
       user: req.user.id,
       type,
       startDate,
-      endDate
+      endDate,
+      reason // ✅ save to DB
     });
 
     await leave.save();
@@ -90,6 +91,18 @@ exports.applyLeave = async (req, res) => {
     res.status(500).send('Server error');
   }
 };
+
+// Get leave history
+exports.getLeaveHistory = async (req, res) => {
+  try {
+    const leaves = await Leave.find({ user: req.user.id }).sort({ createdAt: -1 });
+    res.json(leaves);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
+
 
 // Get employee profile
 exports.getProfile = async (req, res) => {

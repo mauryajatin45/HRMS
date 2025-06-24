@@ -1,49 +1,63 @@
 // src/pages/Reports.js
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Reports() {
-  const [selectedMonth, setSelectedMonth] = useState("2023-06");
+  const [selectedMonth, setSelectedMonth] = useState("2025-06");
   const [activeTab, setActiveTab] = useState("attendance");
+  const [attendanceData, setAttendanceData] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // Sample data
-  const attendanceData = [
-    {
-      date: "2023-06-01",
-      status: "Present",
-      lateReason: "",
-      notes: "Completed project tasks",
-    },
-    {
-      date: "2023-06-02",
-      status: "Late",
-      lateReason: "Traffic jam",
-      notes: "Team meeting",
-    },
-    {
-      date: "2023-06-03",
-      status: "Present",
-      lateReason: "",
-      notes: "Client presentation",
-    },
-    {
-      date: "2023-06-05",
-      status: "Absent",
-      lateReason: "",
-      notes: "Sick leave",
-    },
-    {
-      date: "2023-06-06",
-      status: "Present",
-      lateReason: "",
-      notes: "Code review",
-    },
-    {
-      date: "2023-06-07",
-      status: "Late",
-      lateReason: "Public transport delay",
-      notes: "Sprint planning",
-    },
-  ];
+  const [attendanceSummary, setAttendanceSummary] = useState({
+    present: 0,
+    absent: 0,
+    late: 0,
+  });
+
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      setLoading(true);
+      const [year, month] = selectedMonth.split("-");
+      const token = localStorage.getItem("token");
+
+      try {
+        const res = await fetch(
+          `${
+            import.meta.env.VITE_API_BASE_URL
+          }/employee/attendance?month=${parseInt(month)}&year=${year}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.msg || "Failed to load attendance");
+
+        setAttendanceData(data);
+
+        const summary = data.reduce(
+          (acc, record) => {
+            if (record.status === "present") acc.present++;
+            else if (record.status === "late") acc.late++;
+            else acc.absent++;
+            return acc;
+          },
+          { present: 0, absent: 0, late: 0 }
+        );
+
+        setAttendanceSummary(summary);
+      } catch (err) {
+        console.error("Error fetching attendance:", err);
+        setAttendanceData([]);
+        setAttendanceSummary({ present: 0, absent: 0, late: 0 });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAttendance();
+  }, [selectedMonth]);
 
   const salaryData = [
     {
@@ -96,17 +110,6 @@ export default function Reports() {
     maternityLeave: { total: 180, taken: 0, remaining: 180 },
     paternityLeave: { total: 30, taken: 0, remaining: 30 },
   };
-
-  // Calculate attendance summary
-  const attendanceSummary = attendanceData.reduce(
-    (acc, record) => {
-      if (record.status === "Present") acc.present++;
-      if (record.status === "Absent") acc.absent++;
-      if (record.status === "Late") acc.late++;
-      return acc;
-    },
-    { present: 0, absent: 0, late: 0 }
-  );
 
   // Calculate attendance rate
   const attendanceRate = Math.round(
@@ -253,8 +256,16 @@ export default function Reports() {
                   {attendanceData.map((record, index) => (
                     <tr key={index} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {record.date}
+                        {new Date(record.date).toLocaleString("en-IN", {
+                          timeZone: "Asia/Kolkata",
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </td>
+
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
                           className={`px-2.5 py-1 rounded-full text-xs font-medium ${

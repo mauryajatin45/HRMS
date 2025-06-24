@@ -54,8 +54,8 @@ export default function Profile() {
       ) : (
         <div className="bg-white rounded-lg shadow-md p-6 max-w-3xl">
           <div className="flex items-center mb-8">
-            <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" />
-            <div className="ml-6">
+            {/* <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" /> */}
+<div className=" p-4 flex justify-between items-center w-full border-b-2">
               <h2 className="text-2xl font-bold">{employeeData.name}</h2>
               <p className="text-blue-600">{employeeData.position}</p>
             </div>

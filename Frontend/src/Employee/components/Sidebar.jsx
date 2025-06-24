@@ -87,8 +87,8 @@ export default function Sidebar() {
 
       {/* Profile section at bottom */}
       <div className="absolute bottom-4 left-0 right-0 px-4">
-        <div className="flex items-center gap-3 p-3 border-t border-gray-200">
-          <div className="bg-gray-200 border-2 border-dashed rounded-xl w-10 h-10" />
+        <div className="flex items-center justify-center gap-3 p-3 border-t border-gray-200">
+          {/* <div className="bg-gray-200 border-2 border-dashed rounded-xl w-10 h-10" /> */}
           <div>
             <p className="font-medium text-gray-800">{user.fullName}</p>
             <p className="text-sm text-gray-500">{user.designation}</p>
