@@ -8,7 +8,8 @@ const {
   applyLeave,
   getProfile,
   getAttendanceHistory,
-  getPayrollHistory
+  getPayrollHistory,
+  getMonthlyAttendanceStats
 } = require('../controllers/employeeController');
 
 // Employee routes
@@ -17,6 +18,7 @@ router.post('/clockout', auth, role(['employee', 'hr']), clockOut);
 router.post('/leave', auth, role(['employee', 'hr']), applyLeave);
 router.get('/profile', auth, role(['employee', 'hr']), getProfile);
 router.get('/attendance', auth, role(['employee', 'hr']), getAttendanceHistory);
+router.get('/attendance/stats', auth, role(['employee', 'hr']), getMonthlyAttendanceStats);
 router.get('/payroll', auth, role(['employee', 'hr']), getPayrollHistory);
 
 module.exports = router;

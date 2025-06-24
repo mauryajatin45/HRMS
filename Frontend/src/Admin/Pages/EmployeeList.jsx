@@ -1,10 +1,11 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function EmployeeList() {
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
+  
   const [newEmployee, setNewEmployee] = useState({
     name: "",
     email: "",
@@ -13,30 +14,42 @@ export default function EmployeeList() {
     password: "",
   });
 
-  const employees = [
-    {
-      id: 1,
-      name: "John Doe",
-      email: "john@example.com",
-      designation: "Frontend Developer",
-      status: "Active",
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      email: "jane@example.com",
-      designation: "UX Designer",
-      status: "Active",
-    },
-    {
-      id: 3,
-      name: "Robert Johnson",
-      email: "robert@example.com",
-      designation: "Backend Developer",
-      status: "Inactive",
-    },
-    // Add more employees as needed
-  ];
+  const [employees, setEmployees] = useState([]);
+  useEffect(() => {
+  const fetchEmployees = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/employees`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        // map backend fields to your UI expectations
+        const mapped = data.map((emp) => ({
+          id: emp._id,
+          name: emp.fullName,
+          email: emp.email,
+          designation: emp.designation,
+          status: emp.isActive ? "Active" : "Inactive"
+        }));
+        setEmployees(mapped);
+      } else {
+        console.error(data);
+        alert(data.msg || "Failed to fetch employees.");
+      }
+    } catch (err) {
+      console.error("Error fetching employees:", err);
+      alert("Server error while loading employee list.");
+    }
+  };
+
+  fetchEmployees();
+}, []);
+
+
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -62,6 +75,7 @@ export default function EmployeeList() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
+            fullName: newEmployee.name, 
             email: newEmployee.email,
             designation: newEmployee.designation,
             startDate: newEmployee.startDate,

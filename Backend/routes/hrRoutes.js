@@ -6,10 +6,12 @@ const {
   getAllEmployees,
   getAllAttendance,
   getPendingLeaves,
-  updateLeaveStatus
+  updateLeaveStatus,
+    getEmployeeById
 } = require('../controllers/hrController');
 
 // HR routes
+router.get('/employees/:id', auth, role(['hr', 'admin']), getEmployeeById);
 router.get('/employees', auth, role(['hr', 'admin']), getAllEmployees);
 router.get('/attendance', auth, role(['hr', 'admin']), getAllAttendance);
 router.get('/leaves/pending', auth, role(['hr', 'admin']), getPendingLeaves);

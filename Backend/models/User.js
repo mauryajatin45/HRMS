@@ -34,6 +34,16 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
+}, {
+  toJSON: { virtuals: true },    
+  toObject: { virtuals: true }    
+});
+
+UserSchema.virtual('employee', {
+  ref: 'Employee',        
+  localField: '_id',      
+  foreignField: 'user',   
+  justOne: true        
 });
 
 module.exports = mongoose.model('User', UserSchema);

@@ -8,8 +8,20 @@ exports.clockIn = async (req, res) => {
   try {
     const indiaTime = moment().tz('Asia/Kolkata');
     const isLate = indiaTime.hour() > 10 || (indiaTime.hour() === 10 && indiaTime.minute() > 20);
-    
-    const attendance = new Attendance({
+
+    const start = new Date().setHours(0, 0, 0, 0);
+    const end = new Date().setHours(23, 59, 59, 999);
+
+    let attendance = await Attendance.findOne({
+      user: req.user.id,
+      date: { $gte: start, $lt: end }
+    });
+
+    if (attendance) {
+      return res.status(400).json({ msg: 'Already clocked in today.' });
+    }
+
+    attendance = new Attendance({
       user: req.user.id,
       clockIn: new Date(),
       status: isLate ? 'late' : 'present'
@@ -22,6 +34,7 @@ exports.clockIn = async (req, res) => {
     res.status(500).send('Server error');
   }
 };
+
 
 // Clock out
 exports.clockOut = async (req, res) => {
@@ -124,5 +137,37 @@ exports.getPayrollHistory = async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
+  }
+};
+
+// controllers/employeeController.js
+exports.getMonthlyAttendanceStats = async (req, res) => {
+  try {
+    const { id } = req.user;
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    const records = await Attendance.find({
+      user: id,
+      date: { $gte: startOfMonth, $lte: endOfMonth }
+    });
+
+    const stats = {
+      present: 0,
+      absent: 0,
+      late: 0
+    };
+
+    records.forEach((r) => {
+      if (r.status === 'present') stats.present++;
+      else if (r.status === 'late') stats.late++;
+      else stats.absent++;
+    });
+
+    res.json(stats);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: 'Server error' });
   }
 };

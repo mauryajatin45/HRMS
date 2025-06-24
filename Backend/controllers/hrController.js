@@ -16,6 +16,24 @@ exports.getAllEmployees = async (req, res) => {
   }
 };
 
+// Get employee by ID (for HR)
+exports.getEmployeeById = async (req, res) => {
+  try {
+    const employee = await User.findById(req.params.id)
+      .select('-password -__v')
+      .populate('employee', '-user -__v');
+
+    if (!employee) {
+      return res.status(404).json({ msg: 'Employee not found' });
+    }
+
+    res.json(employee);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
 // Get all attendance
 exports.getAllAttendance = async (req, res) => {
   try {
