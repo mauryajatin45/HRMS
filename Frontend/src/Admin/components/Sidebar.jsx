@@ -12,11 +12,23 @@ const navItems = [
   { name: 'Logout', icon: LogOut, link: '/logout' }
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ sidebarOpen, closeSidebar }) {
   const location = useLocation();
 
+  const handleClick = () => {
+    if (closeSidebar) {
+      closeSidebar();
+    }
+  };
+
   return (
-    <aside className="fixed w-64 bg-white h-screen shadow-md p-4 space-y-2">
+    <div
+      className={
+        "fixed inset-y-0 left-0 w-64 bg-white h-screen shadow-md p-4 space-y-2 transform transition-transform duration-300 z-40 " +
+        (sidebarOpen ? "translate-x-0" : "-translate-x-full") +
+        " md:translate-x-0"
+      }
+    >
       {navItems.map(({ name, icon: Icon, link, matchPrefix }) => {
         const isActive = matchPrefix
           ? location.pathname.startsWith(matchPrefix)
@@ -26,6 +38,7 @@ export default function Sidebar() {
           <Link
             key={name}
             to={link}
+            onClick={handleClick}
             className={`flex items-center gap-3 px-3 py-2 rounded font-medium transition ${
               isActive
                 ? 'bg-blue-500 text-white'
@@ -37,6 +50,6 @@ export default function Sidebar() {
           </Link>
         );
       })}
-    </aside>
+    </div>
   );
 }

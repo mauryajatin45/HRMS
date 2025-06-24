@@ -1,7 +1,5 @@
-// src/Login.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import 
 
 const Login = () => {
   const [step, setStep] = useState(1);
@@ -20,7 +18,6 @@ const Login = () => {
   };
 
   const handleSubmit = () => {
-    // Check credentials
     if (email === 'admin@shivaurica.com' && password === 'admin') {
       navigate('/admin/dashboard');
     } else if (email === 'hr@shivaurica.com' && password === 'hr') {
@@ -33,11 +30,9 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-red-500 to-red-700">
-        <title>
-            Login - Shivaurica
-        </title>
-      <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md mx-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-red-500 to-red-700 px-4">
+      <title>Login - Shivaurica</title>
+      <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-red-700">Shivaurica</h1>
           <p className="text-gray-600 mt-2">Enter your credentials to continue</p>
