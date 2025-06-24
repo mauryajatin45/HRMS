@@ -1,41 +1,72 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 
 const Login = () => {
   const [step, setStep] = useState(1);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const validateEmail = () => {
-    if (!email.endsWith('@shivaurica.com')) {
-      setError('Only @shivaurica.com emails are allowed');
+    if (!email.endsWith("@shivaurica.com")) {
+      setError("Only @shivaurica.com emails are allowed");
       return false;
     }
-    setError('');
+    setError("");
     return true;
   };
 
-  const handleSubmit = () => {
-    if (email === 'admin@shivaurica.com' && password === 'admin') {
-      navigate('/admin/dashboard');
-    } else if (email === 'hr@shivaurica.com' && password === 'hr') {
-      navigate('/hr/dashboard');
-    } else if (email === 'employee@shivaurica.com' && password === 'employee') {
-      navigate('/employee/dashboard');
-    } else {
-      setError('Invalid credentials');
+  const handleSubmit = async (e) => {
+    e.preventDefault(); // ✅ prevent form reload
+    console.log("🔄 Submitting login...");
+
+    try {
+      const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/auth/login`;
+      console.log("🌐 API URL:", apiUrl);
+
+      const res = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+      console.log("✅ Response received:", res.status, data);
+
+      if (!res.ok) {
+        setError(data.msg || "Login failed");
+        return;
+      }
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("role", data.role);
+
+      const user = jwtDecode(data.token);
+      localStorage.setItem("userId", user.id);
+
+      if (data.role === "admin") navigate("/admin/dashboard");
+      else if (data.role === "hr") navigate("/hr/dashboard");
+      else navigate("/employee/dashboard");
+    } catch (err) {
+      console.error("❌ Login error:", err);
+      setError("Server error. Please try again.");
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-red-500 to-red-700 px-4">
       <title>Login - Shivaurica</title>
-      <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md"
+      >
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-red-700">Shivaurica</h1>
-          <p className="text-gray-600 mt-2">Enter your credentials to continue</p>
+          <p className="text-gray-600 mt-2">
+            Enter your credentials to continue
+          </p>
         </div>
 
         {error && (
@@ -54,9 +85,11 @@ const Login = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 placeholder="name@shivaurica.com"
+                required
               />
             </div>
             <button
+              type="button"
               onClick={() => validateEmail() && setStep(2)}
               className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 cursor-pointer"
             >
@@ -73,17 +106,19 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                 placeholder="Enter your password"
+                required
               />
             </div>
             <div className="flex justify-between">
               <button
+                type="button"
                 onClick={() => setStep(1)}
                 className="text-red-600 hover:text-red-800 font-medium cursor-pointer"
               >
                 Back
               </button>
               <button
-                onClick={handleSubmit}
+                type="submit"
                 className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg cursor-pointer transition duration-300"
               >
                 Sign In
@@ -96,7 +131,7 @@ const Login = () => {
           <p>Use company-provided credentials</p>
           <p className="mt-2">© 2025 Shivaurica. All rights reserved</p>
         </div>
-      </div>
+      </form>
     </div>
   );
 };
