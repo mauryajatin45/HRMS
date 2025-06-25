@@ -21,8 +21,12 @@ exports.getEmployeeById = async (req, res) => {
   try {
     const employee = await User.findById(req.params.id)
       .select("-password -__v")
-      .populate("employee", "-user -__v");
-
+      .populate({
+        path: "employee",
+        options: { strictPopulate: false } // ensures virtual works across versions
+      })
+      .lean({ virtuals: true }); 
+      
     if (!employee) {
       return res.status(404).json({ msg: "Employee not found" });
     }

@@ -6,8 +6,14 @@ const {
   addEmployee, 
   getAllEmployees, 
   getEmployeeById, 
-  updateEmployee 
+  updateEmployee,
+  getAdminProfile,
+  updateAdminProfile
 } = require('../controllers/adminController');
+
+// Admin Profile Route
+router.get('/profile', auth, role(['admin']), getAdminProfile);
+router.put('/profile', auth, role(['admin']), updateAdminProfile);
 
 // Employee management
 router.post('/employees', auth, role(['admin']), addEmployee);

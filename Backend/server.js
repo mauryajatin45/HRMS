@@ -9,6 +9,8 @@ const employeeRoutes = require('./routes/employeeRoutes');
 const hrRoutes = require('./routes/hrRoutes');
 const payrollRoutes = require('./routes/payrollRoutes');
 const leaveRoutes = require('./routes/leaveRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes')
+const attendanceRoutes = require('./routes/attendanceRoutes')
 
 const app = express();
 
@@ -43,6 +45,8 @@ app.use('/api/employee', employeeRoutes);
 app.use('/api/hr', hrRoutes);
 app.use('/api/payroll', payrollRoutes);
 app.use('/api/leave', leaveRoutes);
+app.use('/api/dashboard', dashboardRoutes); 
+app.use('/api/attendance', attendanceRoutes);
 
 // ✅ Start server
 const PORT = process.env.PORT || 5000;

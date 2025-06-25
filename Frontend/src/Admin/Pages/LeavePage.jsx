@@ -1,92 +1,113 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function LeavePage() {
   const [search, setSearch] = useState('');
   const [type, setType] = useState('');
   const [status, setStatus] = useState('');
+  const [leaveRequests, setLeaveRequests] = useState([]);
   const [activeFilters, setActiveFilters] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
 
-  const leaveRequests = [
-    {
-      id: 1,
-      name: 'Paul Wilson',
-      email: 'paul.wilson@example.com',
-      type: 'Casual',
-      status: 'Pending',
-      start: '2025-06-18',
-      end: '2025-06-20',
-      reason: 'Family reunion and vacation time with extended family members',
-      days: 3
-    },
-    {
-      id: 2,
-      name: 'Emma Jones',
-      email: 'emma.jones@example.com',
-      type: 'Sick',
-      status: 'Approved',
-      start: '2025-06-14',
-      end: '2025-06-15',
-      reason: 'Fever and doctor appointment for a follow-up check',
-      days: 2
-    },
-    {
-      id: 3,
-      name: 'Raj Mehta',
-      email: 'raj.mehta@example.com',
-      type: 'Unpaid',
-      status: 'Rejected',
-      start: '2025-06-10',
-      end: '2025-06-11',
-      reason: 'Personal emergency requiring immediate attention',
-      days: 2
-    },
-    {
-      id: 4,
-      name: 'Sarah Davis',
-      email: 'sarah.davis@example.com',
-      type: 'Maternity',
-      status: 'Approved',
-      start: '2025-07-01',
-      end: '2025-10-01',
-      reason: 'Maternity leave for newborn child care',
-      days: 93
-    },
-    {
-      id: 5,
-      name: 'Michael Chen',
-      email: 'michael.chen@example.com',
-      type: 'Casual',
-      status: 'Pending',
-      start: '2025-06-22',
-      end: '2025-06-25',
-      reason: 'Attending a professional development conference',
-      days: 4
+  const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    const fetchLeaves = async () => {
+      try {
+        const queryParams = new URLSearchParams();
+        if (type) queryParams.append('type', type.toLowerCase());
+        if (status) queryParams.append('status', status.toLowerCase());
+
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/leave?${queryParams}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          setLeaveRequests(data.map(leave => ({
+            id: leave._id,
+            name: leave.user.fullName,
+            email: leave.user.email,
+            type: leave.type.charAt(0).toUpperCase() + leave.type.slice(1),
+            status: leave.status.charAt(0).toUpperCase() + leave.status.slice(1),
+            start: leave.startDate,
+            end: leave.endDate,
+            reason: leave.reason || '',
+            days: Math.floor((new Date(leave.endDate) - new Date(leave.startDate)) / (1000 * 60 * 60 * 24)) + 1
+          })));
+        } else {
+          alert(data.msg || "Failed to fetch leave requests");
+        }
+      } catch (err) {
+        console.error("Error fetching leave requests:", err);
+        alert("Server error");
+      }
+    };
+
+    fetchLeaves();
+  }, [type, status, token]);
+
+  const handleApprove = async (id) => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/leave/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: 'approved' })
+      });
+      if (res.ok) {
+        setLeaveRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'Approved' } : req));
+        closeDetails();
+      } else {
+        const data = await res.json();
+        alert(data.msg || 'Approval failed');
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Server error");
     }
-  ];
+  };
+
+  const handleReject = async (id) => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/leave/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: 'rejected' })
+      });
+      if (res.ok) {
+        setLeaveRequests(prev => prev.map(req => req.id === id ? { ...req, status: 'Rejected' } : req));
+        closeDetails();
+      } else {
+        const data = await res.json();
+        alert(data.msg || 'Rejection failed');
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Server error");
+    }
+  };
 
   const filtered = leaveRequests.filter(req =>
     (req.name.toLowerCase().includes(search.toLowerCase()) ||
-    req.email.toLowerCase().includes(search.toLowerCase()) &&
-    (type === '' || req.type === type) &&
-    (status === '' || req.status === status)
-  ));
+    req.email.toLowerCase().includes(search.toLowerCase()))
+  );
 
-  // Format date to "Jun 18, 2025"
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
-  // Format date range to "Jun 18 - 20, 2025"
   const formatDateRange = (start, end) => {
     const startDate = new Date(start);
     const endDate = new Date(end);
-    
     if (startDate.getMonth() === endDate.getMonth() && startDate.getFullYear() === endDate.getFullYear()) {
-      return `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { day: 'numeric' })}, ${endDate.getFullYear()}`;
+      return `${startDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })} - ${endDate.getDate()}, ${endDate.getFullYear()}`;
     }
-    
     return `${formatDate(start)} - ${formatDate(end)}`;
   };
 
@@ -103,16 +124,6 @@ export default function LeavePage() {
 
   const closeDetails = () => {
     setSelectedRequest(null);
-  };
-
-  const handleApprove = (id) => {
-    console.log(`Approved request ${id}`);
-    closeDetails();
-  };
-
-  const handleReject = (id) => {
-    console.log(`Rejected request ${id}`);
-    closeDetails();
   };
 
   return (

@@ -2,11 +2,62 @@ import { useEffect, useState } from "react";
 
 export default function Dashboard() {
   const [dateTime, setDateTime] = useState(new Date());
+  const [stats, setStats] = useState({ totalEmployees: 0, presentToday: 0, absentToday: 0 });
+  const [recentLeaves, setRecentLeaves] = useState([]);
+  const [todayAttendance, setTodayAttendance] = useState([]);
 
   useEffect(() => {
     const timer = setInterval(() => setDateTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/dashboard`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          setStats(data.stats);
+          setRecentLeaves(data.recentLeaves);
+          setTodayAttendance(data.todayAttendance);
+        }
+      } catch (err) {
+        console.error("Failed to load dashboard data", err);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  const handleLeaveStatusUpdate = async (leaveId, status) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/dashboard/leaves/${leaveId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setRecentLeaves(data.recentLeaves);
+      } else {
+        alert(data.message || "Update failed");
+      }
+    } catch (err) {
+      console.error("Failed to update leave status", err);
+      alert("Something went wrong!");
+    }
+  };
 
   const formattedDate = dateTime.toLocaleDateString(undefined, {
     year: "numeric",
@@ -22,97 +73,79 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <title>
-        Dashboard | Admin
-      </title>
+      <title>Dashboard | Admin</title>
+
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
         <h1 className="text-3xl font-bold text-gray-800">Admin Dashboard</h1>
         <div className="text-sm text-gray-600 font-medium mt-2 sm:mt-0">
           <span>{formattedDate}</span> | <span>{formattedTime}</span>
         </div>
       </div>
-      {/* ROW 1: STATS */}
+
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl shadow p-6 text-center">
           <p className="text-gray-500">Total Employees</p>
-          <h2 className="text-3xl text-blue-600 font-bold">120</h2>
+          <h2 className="text-3xl text-blue-600 font-bold">{stats.totalEmployees}</h2>
         </div>
         <div className="bg-white rounded-xl shadow p-6 text-center">
           <p className="text-gray-500">Present Today</p>
-          <h2 className="text-3xl text-green-600 font-bold">95</h2>
+          <h2 className="text-3xl text-green-600 font-bold">{stats.presentToday}</h2>
         </div>
         <div className="bg-white rounded-xl shadow p-6 text-center">
           <p className="text-gray-500">Absent Today</p>
-          <h2 className="text-3xl text-red-600 font-bold">25</h2>
+          <h2 className="text-3xl text-red-600 font-bold">{stats.absentToday}</h2>
         </div>
       </div>
 
-      {/* ROW 2: LEAVE REQUEST TABLE */}
+      {/* Leave Requests */}
       <div className="bg-white rounded-xl shadow p-6">
-        <h3 className="text-lg font-semibold mb-4 text-gray-800">
-          Recent Leave Requests
-        </h3>
+        <h3 className="text-lg font-semibold mb-4 text-gray-800">Recent Leave Requests</h3>
         <div className="overflow-x-auto">
           <table className="min-w-full table-auto text-sm">
             <thead className="bg-gray-100 text-left">
               <tr>
                 <th className="p-3">Employee</th>
-                <th className="p-3">Department</th>
-                <th className="p-3">Date</th>
-                <th className="p-3">Reason</th>
+                <th className="p-3">Email</th>
+                <th className="p-3">Start Date</th>
+                <th className="p-3">End Date</th>
                 <th className="p-3">Status</th>
-                <th className="p-3">Action</th>
+                <th className="p-3">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y">
-              {[
-                {
-                  name: "Priya Sharma",
-                  dept: "HR",
-                  date: "2025-06-19",
-                  reason: "Sick Leave",
-                  status: "Pending",
-                },
-                {
-                  name: "Raj Mehta",
-                  dept: "Development",
-                  date: "2025-06-18",
-                  reason: "Personal Work",
-                  status: "Approved",
-                },
-                {
-                  name: "Neel Patel",
-                  dept: "Testing",
-                  date: "2025-06-17",
-                  reason: "Family Event",
-                  status: "Rejected",
-                },
-              ].map((req, i) => (
+              {recentLeaves.map((leave, i) => (
                 <tr key={i} className="hover:bg-blue-50">
-                  <td className="p-3 font-medium">{req.name}</td>
-                  <td className="p-3">{req.dept}</td>
-                  <td className="p-3">{req.date}</td>
-                  <td className="p-3">{req.reason}</td>
-                  <td className="p-3">
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-medium ${
-                        req.status === "Approved"
-                          ? "bg-green-100 text-green-700"
-                          : req.status === "Rejected"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-yellow-100 text-yellow-700"
-                      }`}
-                    >
-                      {req.status}
-                    </span>
+                  <td className="p-3 font-medium">{leave.user?.fullName}</td>
+                  <td className="p-3">{leave.user?.email}</td>
+                  <td className="p-3">{new Date(leave.startDate).toLocaleDateString("en-IN")}</td>
+                  <td className="p-3">{new Date(leave.endDate).toLocaleDateString("en-IN")}</td>
+                  <td className="p-3 capitalize">
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      leave.status === "approved"
+                        ? "bg-green-100 text-green-700"
+                        : leave.status === "rejected"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-yellow-100 text-yellow-700"
+                    }`}>{leave.status}</span>
                   </td>
                   <td className="p-3 space-x-2">
-                    <button className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 cursor-pointer">
-                      Approve
-                    </button>
-                    <button className="px-3 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 cursor-pointer">
-                      Reject
-                    </button>
+                    {leave.status === "pending" && (
+                      <>
+                        <button
+                          onClick={() => handleLeaveStatusUpdate(leave._id, "approved")}
+                          className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => handleLeaveStatusUpdate(leave._id, "rejected")}
+                          className="px-3 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700"
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -121,48 +154,40 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ROW 3: YESTERDAY'S ACTIVITY TABLE */}
+      {/* Today's Attendance */}
       <div className="bg-white rounded-xl shadow p-6">
-        <h3 className="text-lg font-semibold mb-4 text-gray-800">
-          Yesterday's Employee Activities
-        </h3>
+        <h3 className="text-lg font-semibold mb-4 text-gray-800">Today's Attendance</h3>
         <div className="overflow-x-auto">
           <table className="min-w-full table-auto text-sm">
             <thead className="bg-gray-100 text-left">
               <tr>
                 <th className="p-3">Employee</th>
-                <th className="p-3">Department</th>
-                <th className="p-3">Tasks Completed</th>
-                <th className="p-3">Login Time</th>
-                <th className="p-3">Logout Time</th>
+                <th className="p-3">Designation</th>
+                <th className="p-3">Clock In</th>
+                <th className="p-3">Clock Out</th>
                 <th className="p-3">Notes</th>
+                <th className="p-3">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y">
-              <tr className="hover:bg-blue-50">
-                <td className="p-3 font-medium">Raj Mehta</td>
-                <td className="p-3">Development</td>
-                <td className="p-3">5</td>
-                <td className="p-3">9:10 AM</td>
-                <td className="p-3">6:05 PM</td>
-                <td className="p-3">Implemented login module & fixed bugs</td>
-              </tr>
-              <tr className="hover:bg-blue-50">
-                <td className="p-3 font-medium">Priya Sharma</td>
-                <td className="p-3">HR</td>
-                <td className="p-3">3</td>
-                <td className="p-3">9:30 AM</td>
-                <td className="p-3">5:45 PM</td>
-                <td className="p-3">Conducted interviews & onboarding</td>
-              </tr>
-              <tr className="hover:bg-blue-50">
-                <td className="p-3 font-medium">Neel Patel</td>
-                <td className="p-3">Testing</td>
-                <td className="p-3">4</td>
-                <td className="p-3">10:00 AM</td>
-                <td className="p-3">6:30 PM</td>
-                <td className="p-3">Tested 3 modules and logged 6 bugs</td>
-              </tr>
+              {todayAttendance.map((entry, i) => (
+                <tr key={i} className="hover:bg-blue-50">
+                  <td className="p-3 font-medium">{entry.user?.fullName}</td>
+                  <td className="p-3">{entry.user?.designation}</td>
+                  <td className="p-3">{new Date(entry.clockIn).toLocaleTimeString("en-IN")}</td>
+                  <td className="p-3">{new Date(entry.clockOut).toLocaleTimeString("en-IN")}</td>
+                  <td className="p-3">{entry.notes}</td>
+                  <td className="p-3 capitalize">
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${
+                      entry.status === "present"
+                        ? "bg-green-100 text-green-700"
+                        : entry.status === "late"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : "bg-red-100 text-red-700"
+                    }`}>{entry.status}</span>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>

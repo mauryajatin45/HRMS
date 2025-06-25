@@ -40,3 +40,51 @@ exports.updateLeaveStatus = async (req, res) => {
     res.status(500).send('Server error');
   }
 };
+
+// Get all leave requests (for admin/HR)
+exports.getAllLeaveRequests = async (req, res) => {
+  try {
+    const { status, type, startDate, endDate } = req.query;
+    
+    // Build query
+    const query = {};
+    
+    if (status) query.status = status;
+    if (type) query.type = type;
+    
+    if (startDate && endDate) {
+      query.$or = [
+        { 
+          startDate: { $lte: new Date(endDate) },
+          endDate: { $gte: new Date(startDate) }
+        },
+        {
+          startDate: { $gte: new Date(startDate), $lte: new Date(endDate) }
+        }
+      ];
+    }
+
+    const leaves = await Leave.find(query)
+      .populate('user', 'fullName email designation department')
+      .sort({ startDate: -1 });
+
+    res.json(leaves);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+// Get leave requests by employee
+exports.getLeaveRequestsByEmployee = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const leaves = await Leave.find({ user: userId })
+      .sort({ startDate: -1 });
+
+    res.json(leaves);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};

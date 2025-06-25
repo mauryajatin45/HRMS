@@ -1,31 +1,58 @@
-// src/Admin/Pages/ProfilePage.jsx
-import React, { useState } from 'react';
-import { 
-  Edit, 
-  Save, 
-  X, 
-  User, 
-  Mail, 
-  Phone, 
-  Briefcase, 
+import { useState, useEffect } from 'react';
+import {
+  Edit,
+  Save,
+  User,
+  Mail,
+  Phone,
+  Briefcase,
   CreditCard,
   CalendarDays as Calendar
 } from 'lucide-react';
 
-const ProfilePage = () => {
+export default function ProfilePage() {
+  const [adminData, setAdminData] = useState(null);
+  const [tempData, setTempData] = useState({});
   const [isEditing, setIsEditing] = useState(false);
-  const [adminData, setAdminData] = useState({
-    name: 'Alex Morgan',
-    email: 'alex.morgan@company.com',
-    phone: '+1 (555) 123-4567',
-    business: 'Tech Solutions Inc.',
-    gstNumber: 'GSTIN-09ABCDE1234F1Z5',
-    address: '123 Business Avenue, Suite 400, New York, NY 10001',
-    role: 'Administrator',
-    joinDate: 'January 15, 2020'
-  });
+  const [loading, setLoading] = useState(true);
 
-  const [tempData, setTempData] = useState({ ...adminData });
+  const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    const fetchAdminProfile = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/profile`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        if (res.ok) {
+          setAdminData(data);
+          setTempData({
+            fullName: data.fullName || "",
+            email: data.email || "",
+            phoneNumber: data.phoneNumber || "",
+            businessName: data.businessName || "",
+            gstNumber: data.gstNumber || "",
+            businessAddress: data.businessAddress || "",
+            joinDate: data.createdAt || ""
+          });
+        } else {
+          console.error("Failed to load admin profile:", data.msg);
+        }
+      } catch (err) {
+        console.error("Error fetching admin profile:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAdminProfile();
+  }, []);
+
+  const handleInputChange = (e) => {
+    setTempData({ ...tempData, [e.target.name]: e.target.value });
+  };
 
   const handleEditToggle = () => {
     if (isEditing) {
@@ -34,18 +61,49 @@ const ProfilePage = () => {
     setIsEditing(!isEditing);
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setTempData({
-      ...tempData,
-      [name]: value
-    });
+  const handleSave = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/profile`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          fullName: tempData.fullName,
+          phoneNumber: tempData.phoneNumber,
+          businessName: tempData.businessName,
+          gstNumber: tempData.gstNumber,
+          businessAddress: tempData.businessAddress
+        })
+      });
+
+      const updated = await res.json();
+
+      if (!res.ok) {
+        alert(updated.msg || "Failed to update profile");
+        return;
+      }
+
+      alert("Profile updated successfully!");
+      setAdminData({ ...adminData, ...updated });
+      setIsEditing(false);
+    } catch (err) {
+      console.error("Update error:", err);
+      alert("Error saving profile. Try again.");
+    }
   };
 
-  const handleSave = () => {
-    setAdminData({ ...tempData });
-    setIsEditing(false);
-  };
+  const formatIST = (dateStr) =>
+    new Date(dateStr).toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      dateStyle: "long",
+      timeStyle: "short"
+    });
+
+  if (loading || !tempData.fullName) {
+    return <p className="p-6 text-gray-600">Loading admin profile...</p>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -56,12 +114,12 @@ const ProfilePage = () => {
             <h1 className="text-3xl font-bold text-gray-800">Admin Profile</h1>
             <p className="text-gray-600 mt-1">Manage your personal and business information</p>
           </div>
-          
-          <button 
+
+          <button
             onClick={handleEditToggle}
             className={`mt-4 md:mt-0 flex items-center cursor-pointer px-5 py-2.5 rounded-lg transition-all ${
-              isEditing 
-                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300' 
+              isEditing
+                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}
           >
@@ -77,148 +135,62 @@ const ProfilePage = () => {
             <div className="md:w-1/3 mb-8 md:mb-0 md:pr-8 border-b md:border-b-0 md:border-r border-gray-100">
               <div className="flex flex-col items-center">
                 <div className="bg-gray-200 border-2 border-dashed rounded-xl w-24 h-24 mb-4" />
-                <h2 className="text-xl font-semibold text-gray-800">{adminData.name}</h2>
-                <p className="text-gray-600 mt-1">{adminData.role}</p>
+                <h2 className="text-xl font-semibold text-gray-800">{tempData.fullName}</h2>
+                <p className="text-gray-600 mt-1">Admin</p>
                 <div className="flex items-center mt-2 text-gray-500 text-sm">
                   <Calendar className="h-4 w-4 mr-1" />
-                  <span>Joined {adminData.joinDate}</span>
+                  <span>Joined {formatIST(tempData.joinDate)}</span>
                 </div>
               </div>
             </div>
-            
-            {/* Profile Information */}
+
+            {/* Profile Info */}
             <div className="md:w-2/3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Personal Information */}
+                {/* Personal Info */}
                 <div>
                   <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
                     <User className="mr-2 h-5 w-5 text-gray-500" />
                     Personal Information
                   </h3>
-                  
+
                   <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-500 mb-1">Full Name</label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          name="name"
-                          value={tempData.name}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="Enter your full name"
-                        />
-                      ) : (
-                        <p className="text-gray-800">{adminData.name}</p>
-                      )}
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-500 mb-1">Email Address</label>
-                      {isEditing ? (
-                        <input
-                          type="email"
-                          name="email"
-                          value={tempData.email}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="Enter your email"
-                        />
-                      ) : (
-                        <div className="flex items-center">
-                          <Mail className="h-4 w-4 text-gray-400 mr-2" />
-                          <p className="text-gray-800">{adminData.email}</p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-500 mb-1">Phone Number</label>
-                      {isEditing ? (
-                        <input
-                          type="tel"
-                          name="phone"
-                          value={tempData.phone}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="Enter your phone number"
-                        />
-                      ) : (
-                        <div className="flex items-center">
-                          <Phone className="h-4 w-4 text-gray-400 mr-2" />
-                          <p className="text-gray-800">{adminData.phone}</p>
-                        </div>
-                      )}
-                    </div>
+                    <InputBlock label="Full Name" name="fullName" value={tempData.fullName} isEditing={isEditing} onChange={handleInputChange} />
+                    <InputBlock label="Email" name="email" value={tempData.email} isEditing={false} icon={Mail} />
+                    <InputBlock label="Phone Number" name="phoneNumber" value={tempData.phoneNumber} isEditing={isEditing} onChange={handleInputChange} icon={Phone} />
                   </div>
                 </div>
-                
-                {/* Business Information */}
+
+                {/* Business Info */}
                 <div>
                   <h3 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
                     <Briefcase className="mr-2 h-5 w-5 text-gray-500" />
                     Business Information
                   </h3>
-                  
+
                   <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-500 mb-1">Business Name</label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          name="business"
-                          value={tempData.business}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="Enter business name"
-                        />
-                      ) : (
-                        <p className="text-gray-800">{adminData.business}</p>
-                      )}
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-500 mb-1">GST Number</label>
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          name="gstNumber"
-                          value={tempData.gstNumber}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="Enter GST number"
-                        />
-                      ) : (
-                        <div className="flex items-center">
-                          <CreditCard className="h-4 w-4 text-gray-400 mr-2" />
-                          <p className="text-gray-800">{adminData.gstNumber}</p>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-500 mb-1">Business Address</label>
-                      {isEditing ? (
-                        <textarea
-                          name="address"
-                          value={tempData.address}
-                          onChange={handleInputChange}
-                          rows="2"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="Enter business address"
-                        />
-                      ) : (
-                        <p className="text-gray-800">{adminData.address}</p>
-                      )}
-                    </div>
+                    <InputBlock label="Business Name" name="businessName" value={tempData.businessName} isEditing={isEditing} onChange={handleInputChange} />
+                    <InputBlock label="GST Number" name="gstNumber" value={tempData.gstNumber} isEditing={isEditing} onChange={handleInputChange} icon={CreditCard} />
+
+                    {isEditing ? (
+                      <textarea
+                        name="businessAddress"
+                        value={tempData.businessAddress}
+                        onChange={handleInputChange}
+                        rows={2}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Enter address"
+                      />
+                    ) : (
+                      <p className="text-gray-800">{tempData.businessAddress}</p>
+                    )}
                   </div>
                 </div>
               </div>
-              
-              {/* Save Button when editing */}
+
               {isEditing && (
                 <div className="mt-8 flex justify-end">
-                  <button 
+                  <button
                     onClick={handleSave}
                     className="flex items-center cursor-pointer px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
                   >
@@ -231,13 +203,35 @@ const ProfilePage = () => {
           </div>
         </div>
 
-        {/* Additional information */}
         <div className="mt-8 text-center text-gray-500 text-sm">
-          <p>Last updated: March 15, 2023 at 2:45 PM</p>
+          <p>Last updated: {formatIST(tempData.joinDate)}</p>
         </div>
       </div>
     </div>
   );
-};
+}
 
-export default ProfilePage;
+function InputBlock({ label, name, value, isEditing, onChange, icon: Icon }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-500 mb-1">{label}</label>
+      {isEditing ? (
+        <input
+          type="text"
+          name={name}
+          value={value}
+          onChange={onChange}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+          placeholder={`Enter ${label.toLowerCase()}`}
+        />
+      ) : Icon ? (
+        <div className="flex items-center">
+          <Icon className="h-4 w-4 text-gray-400 mr-2" />
+          <p className="text-gray-800">{value}</p>
+        </div>
+      ) : (
+        <p className="text-gray-800">{value}</p>
+      )}
+    </div>
+  );
+}
