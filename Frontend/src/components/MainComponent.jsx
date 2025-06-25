@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 
 export default function MainComponent({ Sidebar, children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -20,7 +20,9 @@ export default function MainComponent({ Sidebar, children }) {
       ></div>
 
       {/* Sidebar */}
-      <Sidebar sidebarOpen={sidebarOpen} closeSidebar={() => setSidebarOpen(false)} />
+      <Suspense fallback={<div>Loading Sidebar...</div>}>
+        <Sidebar sidebarOpen={sidebarOpen} closeSidebar={() => setSidebarOpen(false)} />
+      </Suspense>
 
       {/* Main content */}
       <div className="flex-1 p-6 md:ml-64 z-20">

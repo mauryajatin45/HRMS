@@ -4,13 +4,14 @@ import { jwtDecode } from "jwt-decode";
 
 const Login = () => {
   const [step, setStep] = useState(1);
-  const [email, setEmail] = useState("");
+  const [emailPrefix, setEmailPrefix] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const validateEmail = () => {
-    if (!email.endsWith("@shivaurica.com")) {
+    const fullEmail = emailPrefix + "@shivaurica.com";
+    if (!fullEmail.endsWith("@shivaurica.com")) {
       setError("Only @shivaurica.com emails are allowed");
       return false;
     }
@@ -29,7 +30,7 @@ const Login = () => {
       const res = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email: emailPrefix + "@shivaurica.com", password }),
       });
 
       const data = await res.json();
@@ -79,14 +80,25 @@ const Login = () => {
           <div className="space-y-6">
             <div>
               <label className="block text-gray-700 mb-2">Company Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                placeholder="name@shivaurica.com"
-                required
-              />
+              <div className="flex">
+                <input
+                  type="text"
+                  value={emailPrefix}
+                  onChange={(e) => setEmailPrefix(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (validateEmail()) setStep(2);
+                    }
+                  }}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  placeholder="Enter your email prefix"
+                  required
+                />
+                <span className="inline-flex items-center px-3 rounded-r-lg border border-l-0 border-gray-300 bg-gray-100 text-gray-600 select-none">
+                  @shivaurica.com
+                </span>
+              </div>
             </div>
             <button
               type="button"
