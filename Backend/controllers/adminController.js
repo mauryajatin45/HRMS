@@ -1,6 +1,10 @@
 const User = require("../models/User");
 const Employee = require("../models/Employee");
+const Attendance = require("../models/Attendance")
+const LeaveBalance = require("../models/LeaveBalance")
+const Leave = require("../models/Leave")
 const bcrypt = require("bcryptjs");
+const Payroll = require("../models/Payroll")
 
 // Get all employees
 exports.getAllEmployees = async (req, res) => {
@@ -196,4 +200,63 @@ exports.updateAdminProfile = async (req, res) => {
 };
 
 
-// Other admin methods: manageEmployees, addPayroll, etc.
+exports.getEmployeeProfile = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // 1. Find user by ID
+    const user = await User.findById(userId).select('-password -__v').exec();
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // 2. Find Employee by user reference, populate leaveBalance
+    const employee = await Employee.findOne({ user: userId })
+      .select('-__v -user')
+      .exec();
+
+    if (!employee) {
+      return res.status(404).json({ error: 'Employee record not found for this user' });
+    }
+
+    // REMOVED: Attendance aggregation (step 3)
+
+    // 3. Recent Leaves (renumbered from original step 4)
+    const recentLeaves = await Leave.find({ user: userId })
+      .sort({ startDate: -1 })
+      .limit(3)
+      .select('type startDate endDate status')
+      .exec();
+
+    // 4. Payroll Summary (renumbered from original step 5)
+    const payrollSummary = await Payroll.aggregate([
+      { $match: { user: userId } },
+      {
+        $group: {
+          _id: null,
+          totalEarnings: { $sum: { $add: ["$baseSalary", "$overtime", "$bonus"] } },
+          totalDeductions: { $sum: { $sum: "$deductions.amount" } },
+          lastPaymentDate: { $max: "$paymentDate" }
+        }
+      }
+    ]);
+
+    // 5. Compose response without attendance
+    res.json({
+      profile: {
+        ...user.toObject(),
+        employee: employee.toObject()
+      },
+      stats: {
+        // REMOVED: attendance property
+        leaveBalance: employee.leaveBalance || null,
+        recentLeaves,
+        payroll: payrollSummary[0] || {}
+      }
+    });
+
+  } catch (err) {
+    console.error('Error in getEmployeeProfile:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};

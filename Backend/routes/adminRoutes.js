@@ -8,7 +8,8 @@ const {
   getEmployeeById, 
   updateEmployee,
   getAdminProfile,
-  updateAdminProfile
+  updateAdminProfile,
+  getEmployeeProfile
 } = require('../controllers/adminController');
 
 // Admin Profile Route
@@ -20,5 +21,7 @@ router.post('/employees', auth, role(['admin']), addEmployee);
 router.get('/employees', auth, role(['admin']), getAllEmployees);
 router.get('/employees/:id', auth, role(['admin']), getEmployeeById);
 router.put('/employees/:id', auth, role(['admin']), updateEmployee);
+router.get('/employee/:id', auth, role(['admin']), getEmployeeProfile);
+
 
 module.exports = router;
