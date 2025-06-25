@@ -30,7 +30,10 @@ const Login = () => {
       const res = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: emailPrefix + "@shivaurica.com", password }),
+        body: JSON.stringify({
+          email: emailPrefix + "@shivaurica.com",
+          password,
+        }),
       });
 
       const data = await res.json();
@@ -47,11 +50,11 @@ const Login = () => {
       const user = jwtDecode(data.token);
       localStorage.setItem("userId", user.id);
 
-      if (data.role === "admin") navigate("/admin/dashboard");
-      else if (data.role === "hr") navigate("/hr/dashboard");
-      else navigate("/employee/dashboard");
+      if (data.role === "admin") window.location.assign("/admin/dashboard");
+      else if (data.role === "hr") window.location.assign("/hr/dashboard");
+      else window.location.assign("/employee/dashboard");
     } catch (err) {
-      console.error("❌ Login error:", err);
+      console.error("Login error:", err);
       setError("Server error. Please try again.");
     }
   };
@@ -86,7 +89,7 @@ const Login = () => {
                   value={emailPrefix}
                   onChange={(e) => setEmailPrefix(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === "Enter") {
                       e.preventDefault();
                       if (validateEmail()) setStep(2);
                     }

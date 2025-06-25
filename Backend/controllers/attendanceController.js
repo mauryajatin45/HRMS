@@ -81,11 +81,18 @@ exports.getMonthlyAttendance = async (req, res) => {
     }
 
     const attendance = await Attendance.find(query)
-      .populate("user", "fullName email designation department")
+      .populate({
+        path: "user",
+        select: "fullName email designation department role",
+      })
       .sort({ date: 1, clockIn: 1 });
 
+    const filtered = attendance.filter(
+      (record) => record.user?.role === "employee" || record.user?.role === "hr"
+    );
+
     // Format response
-    const formattedAttendance = attendance.map((record) => ({
+    const formattedAttendance = filtered.map((record) => ({
       id: record._id,
       userId: record.user._id,
       name: record.user.fullName,
@@ -120,7 +127,6 @@ exports.getMonthlyAttendance = async (req, res) => {
   }
 };
 
-
 // Get attendance for specific employee and month
 exports.getEmployeeAttendance = async (req, res) => {
   try {
@@ -131,12 +137,12 @@ exports.getEmployeeAttendance = async (req, res) => {
     if (!month || !year) {
       return res.status(400).json({ error: "Month and year are required" });
     }
-    
+
     if (!id) {
       return res.status(400).json({ error: "Employee ID is required" });
     }
 
-    const monthPadded = String(month).padStart(2, '0');
+    const monthPadded = String(month).padStart(2, "0");
     const startDate = moment(`${year}-${monthPadded}-01`, "YYYY-MM-DD")
       .tz("Asia/Kolkata")
       .startOf("month")
@@ -149,24 +155,24 @@ exports.getEmployeeAttendance = async (req, res) => {
 
     const attendance = await Attendance.find({
       user: id,
-      date: { $gte: startDate, $lte: endDate }
+      date: { $gte: startDate, $lte: endDate },
     })
-    .sort({ date: 1 })
-    .lean();
+      .sort({ date: 1 })
+      .lean();
 
     // Format response for frontend
-    const formattedAttendance = attendance.map(record => ({
+    const formattedAttendance = attendance.map((record) => ({
       id: record._id,
       date: moment(record.date).format("YYYY-MM-DD"),
-      clockIn: record.clockIn 
+      clockIn: record.clockIn
         ? moment(record.clockIn).tz("Asia/Kolkata").format("HH:mm")
         : null,
-      clockOut: record.clockOut 
+      clockOut: record.clockOut
         ? moment(record.clockOut).tz("Asia/Kolkata").format("HH:mm")
         : null,
       status: record.status,
       reason: record.notes || null,
-      workDone: record.workDone || null
+      workDone: record.workDone || null,
     }));
 
     res.json(formattedAttendance);

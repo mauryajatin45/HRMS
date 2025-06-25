@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useCallback } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
-import { isAdminLoggedIn } from "../utils/auth.js";
+import { isHRLoggedIn } from "../utils/auth.js";
 import Dashboard from "./Pages/Dashboard.jsx";
 import ReportEmployeeList from "./Pages/ReportEmployeeList.jsx";
 import EmployeeManagementPage from "./Pages/ReportManagementPage.jsx";
@@ -18,7 +18,7 @@ const preloadSidebar = () => {
 };
 
 const HrRoutes = () => {
-  if (!isAdminLoggedIn()) return <Navigate to="/" replace />;
+  if (!isHRLoggedIn()) return <Navigate to="/" replace />;
 
   const handleMouseEnter = useCallback(() => {
     preloadSidebar();

@@ -5,157 +5,235 @@ import {
   ArrowLeft, 
   Download, 
   Calendar,
-  Clock,
   User,
   Mail,
-  Phone,
   ChevronDown,
-  Briefcase
+  Briefcase,
+  HeartPulse,
+  Coffee,
+  FileText,
+  DollarSign,
+  CheckCircle,
+  AlertCircle,
+  Loader
 } from 'lucide-react';
 
 const EmployeeManagementPage = () => {
   const { id } = useParams();
-  const [selectedMonth, setSelectedMonth] = useState('2023-10');
-  const [employee, setEmployee] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [employeeData, setEmployeeData] = useState(null);
+  const [attendance, setAttendance] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [error, setError] = useState(null);
   
-  // Sample employee data
-  const employees = [
-    {
-      id: 1,
-      name: 'Alex Johnson',
-      position: 'Senior Developer',
-      department: 'Engineering',
-      status: 'Active',
-      hireDate: '2020-03-15',
-      dob: '1990-05-22',
-      email: 'alex.j@company.com',
-      phone: '+1 (555) 123-4567',
-    },
-    {
-      id: 2,
-      name: 'Maria Garcia',
-      position: 'HR Manager',
-      department: 'Human Resources',
-      status: 'Active',
-      hireDate: '2019-11-20',
-      dob: '1988-12-10',
-      email: 'maria.g@company.com',
-      phone: '+1 (555) 987-6543',
-    },
-    {
-      id: 3,
-      name: 'David Kim',
-      position: 'Sales Executive',
-      department: 'Sales',
-      status: 'On Leave',
-      hireDate: '2021-02-05',
-      dob: '1992-08-15',
-      email: 'david.k@company.com',
-      phone: '+1 (555) 456-7890',
-    },
-    {
-      id: 4,
-      name: 'Sarah Williams',
-      position: 'Product Designer',
-      department: 'Design',
-      status: 'Active',
-      hireDate: '2022-01-10',
-      dob: '1994-03-28',
-      email: 'sarah.w@company.com',
-      phone: '+1 (555) 234-5678',
-    },
-    {
-      id: 5,
-      name: 'James Wilson',
-      position: 'QA Engineer',
-      department: 'Engineering',
-      status: 'Active',
-      hireDate: '2020-07-22',
-      dob: '1991-11-05',
-      email: 'james.w@company.com',
-      phone: '+1 (555) 876-5432',
-    },
-  ];
-
-  // Employee details
-  const employeeDetails = {
-    1: {
-      attendance: [
-        { date: '2023-10-01', clockIn: '08:45', clockOut: '17:30', status: 'Late', reason: 'Traffic jam', workDone: 'Implemented new API endpoints' },
-        { date: '2023-10-02', clockIn: '09:00', clockOut: '17:45', status: 'Late', reason: 'Car trouble', workDone: 'Fixed UI bugs' },
-        { date: '2023-10-03', clockIn: '08:30', clockOut: '17:15', status: 'Present', reason: '', workDone: 'Team meeting, code reviews' },
-        { date: '2023-10-04', clockIn: '08:25', clockOut: '17:40', status: 'Present', reason: '', workDone: 'Deployed new features' },
-        { date: '2023-10-05', clockIn: '08:50', clockOut: '17:20', status: 'Late', reason: 'Family emergency', workDone: 'Documentation updates' },
-        { date: '2023-10-06', clockIn: '08:30', clockOut: '16:45', status: 'Present', reason: '', workDone: 'Weekly planning' },
-      ],
-    },
-  };
-
-  // Calculate attendance stats
-  const getAttendanceStats = () => {
-    if (!employee) return { present: 0, late: 0, absent: 0 };
-    
-    const attendance = employeeDetails[id]?.attendance || [];
-    return {
-      present: attendance.filter(a => a.status === 'Present').length,
-      late: attendance.filter(a => a.status === 'Late').length,
-      absent: 22 - (attendance.filter(a => a.status === 'Present').length + attendance.filter(a => a.status === 'Late').length)
-    };
-  };
-
-  const attendanceStats = getAttendanceStats();
-
+  // Initialize selectedMonth with current month
   useEffect(() => {
-    // Find employee by ID
-    const foundEmployee = employees.find(emp => emp.id === parseInt(id));
-    setEmployee(foundEmployee);
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    setSelectedMonth(`${year}-${month}`);
+  }, []);
+
+  // Fetch employee profile data
+  useEffect(() => {
+    const fetchEmployeeProfile = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/employee/${id}`, {
+          headers: { 
+            Authorization: `Bearer ${localStorage.getItem("token")}` 
+          }
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch employee profile');
+        }
+        
+        const data = await response.json();
+        setEmployeeData(data);
+      } catch (err) {
+        console.error('Error fetching employee profile:', err);
+        setError(err.message || 'Failed to load employee data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEmployeeProfile();
   }, [id]);
 
-  if (!employee) {
+  // Fetch attendance data when month changes
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      if (!id || !selectedMonth) return;
+      
+      try {
+        setAttendanceLoading(true);
+        const [year, month] = selectedMonth.split('-');
+        
+        const response = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/attendance/${id}?month=${month}&year=${year}`, 
+          {
+            headers: { 
+              Authorization: `Bearer ${localStorage.getItem("token")}` 
+            }
+          }
+        );
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch attendance data');
+        }
+        
+        const data = await response.json();
+        setAttendance(data);
+      } catch (err) {
+        console.error('Error fetching attendance:', err);
+        setError(err.message || 'Failed to load attendance data');
+      } finally {
+        setAttendanceLoading(false);
+      }
+    };
+
+    if (employeeData && selectedMonth) {
+      fetchAttendance();
+    }
+  }, [id, selectedMonth, employeeData]);
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-lg text-gray-600">Loading employee data...</p>
+          <Loader className="h-8 w-8 text-blue-500 animate-spin mx-auto" />
+          <p className="mt-4 text-lg text-gray-600">Loading employee data...</p>
         </div>
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="bg-red-100 rounded-full p-3 w-16 h-16 flex items-center justify-center mx-auto">
+            <AlertCircle className="h-8 w-8 text-red-500" />
+          </div>
+          <h3 className="mt-4 text-xl font-medium text-gray-900">Error loading data</h3>
+          <p className="mt-2 text-gray-600">{error}</p>
+          <div className="mt-6 flex justify-center gap-3">
+            <button 
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+              onClick={() => window.location.reload()}
+            >
+              Retry
+            </button>
+            <Link 
+              to="/hr/reports"
+              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <ArrowLeft className="h-5 w-5 mr-1" />
+              Back to Employees
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!employeeData || !employeeData.profile) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="bg-gray-100 rounded-full p-3 w-16 h-16 flex items-center justify-center mx-auto">
+            <User className="h-8 w-8 text-gray-500" />
+          </div>
+          <h3 className="mt-4 text-xl font-medium text-gray-900">Employee not found</h3>
+          <p className="mt-2 text-gray-600">The requested employee could not be found.</p>
+          <Link 
+            to="/hr/reports"
+            className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+          >
+            <ArrowLeft className="h-5 w-5 mr-1" />
+            Back to Employee List
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Extract profile and stats from API response
+  const { profile, stats } = employeeData;
+  const { employee } = profile;
+  
+  // Generate month options for selector
+  const generateMonthOptions = () => {
+    const options = [];
+    const currentDate = new Date();
+    const joinDate = new Date(profile.joinDate);
+    
+    // Start from join date or one year back
+    const startDate = new Date(
+      Math.max(
+        joinDate.getFullYear() - 1, 
+        currentDate.getFullYear() - 2
+      ), 
+      0, 
+      1
+    );
+    
+    for (let d = new Date(currentDate); d >= startDate; d.setMonth(d.getMonth() - 1)) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const monthName = d.toLocaleString('default', { month: 'long' });
+      options.push(
+        <option key={`${year}-${month}`} value={`${year}-${month}`}>
+          {monthName} {year}
+        </option>
+      );
+    }
+    
+    return options;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <title>Report Management | HR</title>
+      <title>
+        {profile.fullName} | Employee Management
+      </title>
+      
       {/* Header */}
       <header className="">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                {employee.name}
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                {profile.fullName}
               </h1>
-              <p className="mt-2 text-sm text-gray-600">
+              <p className="mt-1 text-sm text-gray-600">
                 Employee Report Details
               </p>
             </div>
             
-            <div className="flex items-center space-x-3">
-              <div className="relative">
+            <div className="flex flex-wrap gap-3">
+              <div className="relative flex-1 min-w-[200px]">
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="appearance-none bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="w-full appearance-none bg-white border border-gray-300 rounded-md shadow-sm pl-3 pr-10 py-2 text-left cursor-default focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 >
-                  <option value="2023-10">October 2023</option>
-                  <option value="2023-09">September 2023</option>
-                  <option value="2023-08">August 2023</option>
-                  <option value="2023-07">July 2023</option>
-                  <option value="2023-06">June 2023</option>
-                  <option value="2023-05">May 2023</option>
+                  {generateMonthOptions()}
                 </select>
                 <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                   <ChevronDown className="h-5 w-5 text-gray-400" aria-hidden="true" />
                 </div>
               </div>
-              <button className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+              <button 
+                className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                disabled
+                title="Feature coming soon"
+              >
                 <Download className="h-5 w-5 mr-1" />
                 Export
               </button>
@@ -176,55 +254,49 @@ const EmployeeManagementPage = () => {
         
         {/* Basic Information */}
         <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="px-6 py-8">
-            <div className="flex items-start">
-              <div className="bg-gray-200 border-2 border-dashed rounded-xl w-16 h-16" />
-              
-              <div className="ml-6 flex-1">
-                <div className="flex items-center justify-between">
+          <div className="px-4 py-6 sm:px-6 sm:py-8">
+            <div className="flex flex-col sm:flex-row items-start gap-6">              
+              <div className="flex-1 w-full">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">{employee.name}</h2>
-                    <p className="text-gray-600">{employee.position} • {employee.department}</p>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{profile.fullName}</h2>
+                    <p className="text-gray-600">{profile.designation}</p>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    employee.status === 'Active' ? 'bg-green-100 text-green-800' : 
-                    employee.status === 'On Leave' ? 'bg-yellow-100 text-yellow-800' : 
-                    'bg-gray-100 text-gray-800'
+                    profile.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                   }`}>
-                    {employee.status}
+                    {profile.isActive ? 'Active' : 'Inactive'}
                   </span>
                 </div>
                 
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div className="flex items-center">
-                    <User className="h-5 w-5 text-gray-400 mr-2" />
+                    <Calendar className="h-5 w-5 text-gray-400 mr-2 flex-shrink-0" />
                     <div>
-                      <p className="text-sm text-gray-500">Date of Birth</p>
-                      <p className="font-medium">{employee.dob}</p>
+                      <p className="text-sm text-gray-500">Join Date</p>
+                      <p className="font-medium">
+                        {new Date(profile.joinDate).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
                     </div>
                   </div>
                   
                   <div className="flex items-center">
-                    <Calendar className="h-5 w-5 text-gray-400 mr-2" />
-                    <div>
-                      <p className="text-sm text-gray-500">Hire Date</p>
-                      <p className="font-medium">{employee.hireDate}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <Mail className="h-5 w-5 text-gray-400 mr-2" />
+                    <Mail className="h-5 w-5 text-gray-400 mr-2 flex-shrink-0" />
                     <div>
                       <p className="text-sm text-gray-500">Email</p>
-                      <p className="font-medium">{employee.email}</p>
+                      <p className="font-medium break-all">{profile.email}</p>
                     </div>
                   </div>
                   
                   <div className="flex items-center">
-                    <Phone className="h-5 w-5 text-gray-400 mr-2" />
+                    <FileText className="h-5 w-5 text-gray-400 mr-2 flex-shrink-0" />
                     <div>
-                      <p className="text-sm text-gray-500">Phone</p>
-                      <p className="font-medium">{employee.phone}</p>
+                      <p className="text-sm text-gray-500">Aadhar Number</p>
+                      <p className="font-medium">{employee?.aadharNumber || 'Not provided'}</p>
                     </div>
                   </div>
                 </div>
@@ -233,109 +305,235 @@ const EmployeeManagementPage = () => {
           </div>
         </div>
         
-        {/* Attendance Summary */}
+        {/* Leave Balances */}
         <div className="mt-8">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Attendance Summary ({selectedMonth})</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Leave Balances</h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
-              <div className="flex items-center">
-                <div className="bg-green-100 p-3 rounded-lg mr-4">
-                  <Calendar className="h-6 w-6 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Days Present</p>
-                  <p className="text-2xl font-bold">{attendanceStats.present}</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
-              <div className="flex items-center">
-                <div className="bg-yellow-100 p-3 rounded-lg mr-4">
-                  <Clock className="h-6 w-6 text-yellow-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Late Arrivals</p>
-                  <p className="text-2xl font-bold">{attendanceStats.late}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Sick Leave */}
+            {employee?.sickLeaves !== undefined && (
+              <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+                <div className="flex items-center">
+                  <div className="bg-red-100 p-3 rounded-lg mr-4 flex-shrink-0">
+                    <HeartPulse className="h-6 w-6 text-red-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Sick Leave</p>
+                    <p className="text-2xl font-bold">
+                      {employee.sickLeaves} days
+                    </p>
+                    {employee.resetYear && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Resets annually in {employee.resetYear}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
             
-            <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
-              <div className="flex items-center">
-                <div className="bg-red-100 p-3 rounded-lg mr-4">
-                  <User className="h-6 w-6 text-red-600" />
+            {/* Casual Leave */}
+            {employee?.casualLeaves !== undefined && (
+              <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+                <div className="flex items-center">
+                  <div className="bg-blue-100 p-3 rounded-lg mr-4 flex-shrink-0">
+                    <Coffee className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Casual Leave</p>
+                    <p className="text-2xl font-bold">
+                      {employee.casualLeaves} days
+                    </p>
+                    {employee.resetYear && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Resets annually in {employee.resetYear}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-gray-500">Absences</p>
-                  <p className="text-2xl font-bold">{attendanceStats.absent}</p>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Recent Leaves */}
+        {stats?.recentLeaves?.length > 0 && (
+          <div className="mt-8">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Recent Leaves</h3>
+            <div className="bg-white shadow rounded-lg overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Type
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Start Date
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        End Date
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {stats.recentLeaves.map((leave, index) => (
+                      <tr key={index}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
+                          {leave.type}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(leave.startDate).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(leave.endDate).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            leave.status === 'approved' ? 'bg-green-100 text-green-800' : 
+                            leave.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {leave.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Payroll Information - Only show if data exists */}
+        {stats?.payroll && Object.keys(stats.payroll).length > 0 && (
+          <div className="mt-8">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <DollarSign className="h-5 w-5 mr-2 text-green-600" />
+              Payroll Information
+            </h3>
+            
+            <div className="bg-white shadow rounded-lg p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-500">Total Earnings</p>
+                  <p className="text-2xl font-bold">₹{stats.payroll.totalEarnings?.toLocaleString() || '0'}</p>
+                </div>
+                
+                <div className="bg-red-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-500">Total Deductions</p>
+                  <p className="text-2xl font-bold">₹{stats.payroll.totalDeductions?.toLocaleString() || '0'}</p>
+                </div>
+                
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <p className="text-sm text-gray-500">Last Payment Date</p>
+                  <p className="text-xl font-bold">
+                    {stats.payroll.lastPaymentDate ? 
+                      new Date(stats.payroll.lastPaymentDate).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric'
+                      }) : 
+                      'N/A'
+                    }
+                  </p>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
         
         {/* Attendance Log */}
         <div className="mt-8">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Attendance Log</h3>
-          
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Clock In
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Clock Out
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Reason
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Work Done
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {employeeDetails[id]?.attendance.map((entry, index) => (
-                  <tr key={index}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {entry.date}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {entry.clockIn}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {entry.clockOut}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        entry.status === 'Present' ? 'bg-green-100 text-green-800' : 
-                        entry.status === 'Late' ? 'bg-yellow-100 text-yellow-800' : 
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {entry.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {entry.reason}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {entry.workDone}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <h3 className="text-lg font-medium text-gray-900">
+              Attendance Log ({selectedMonth ? new Date(selectedMonth).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : ''})
+            </h3>
+            {attendanceLoading && (
+              <div className="flex items-center text-sm text-gray-500">
+                <Loader className="h-4 w-4 mr-2 animate-spin" />
+                Loading attendance...
+              </div>
+            )}
           </div>
+          
+          {!attendanceLoading && attendance.length === 0 ? (
+            <div className="bg-white shadow rounded-lg p-6 text-center">
+              <Calendar className="h-12 w-12 text-gray-400 mx-auto" />
+              <h4 className="mt-4 text-lg font-medium text-gray-900">No attendance records</h4>
+              <p className="mt-2 text-gray-600">No attendance data available for the selected month.</p>
+            </div>
+          ) : (
+            <div className="bg-white shadow rounded-lg overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Clock In
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Clock Out
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Work Done
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {attendance.map((entry, index) => (
+                      <tr key={index}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(entry.date).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {entry.clockIn || '--:--'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {entry.clockOut || '--:--'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            entry.status === 'Present' ? 'bg-green-100 text-green-800' : 
+                            entry.status === 'Late' ? 'bg-yellow-100 text-yellow-800' : 
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {entry.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                          {entry.reason || '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

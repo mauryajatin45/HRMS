@@ -5,51 +5,53 @@ export default function EmployeeList() {
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
-  
+
   const [newEmployee, setNewEmployee] = useState({
     name: "",
     email: "",
     designation: "",
     startDate: "",
     password: "",
+    role: "employee",
   });
 
   const [employees, setEmployees] = useState([]);
   useEffect(() => {
-  const fetchEmployees = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/admin/employees`, {
-        headers: {
-          Authorization: `Bearer ${token}`
+    const fetchEmployees = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/admin/employees`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        const data = await response.json();
+        if (response.ok) {
+          // map backend fields to your UI expectations
+          const mapped = data.map((emp) => ({
+            id: emp._id,
+            name: emp.fullName,
+            email: emp.email,
+            designation: emp.designation,
+            status: emp.isActive ? "Active" : "Inactive",
+          }));
+          setEmployees(mapped);
+        } else {
+          console.error(data);
+          alert(data.msg || "Failed to fetch employees.");
         }
-      });
-
-      const data = await response.json();
-      if (response.ok) {
-        // map backend fields to your UI expectations
-        const mapped = data.map((emp) => ({
-          id: emp._id,
-          name: emp.fullName,
-          email: emp.email,
-          designation: emp.designation,
-          status: emp.isActive ? "Active" : "Inactive"
-        }));
-        setEmployees(mapped);
-      } else {
-        console.error(data);
-        alert(data.msg || "Failed to fetch employees.");
+      } catch (err) {
+        console.error("Error fetching employees:", err);
+        alert("Server error while loading employee list.");
       }
-    } catch (err) {
-      console.error("Error fetching employees:", err);
-      alert("Server error while loading employee list.");
-    }
-  };
+    };
 
-  fetchEmployees();
-}, []);
-
-
+    fetchEmployees();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -75,11 +77,12 @@ export default function EmployeeList() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            fullName: newEmployee.name, 
+            fullName: newEmployee.name,
             email: newEmployee.email,
             designation: newEmployee.designation,
             startDate: newEmployee.startDate,
             password: newEmployee.password,
+            role: newEmployee.role, // Include role in request
           }),
         }
       );
@@ -91,7 +94,21 @@ export default function EmployeeList() {
         return;
       }
 
-      alert("Employee added successfully!");
+      alert(`User added successfully as ${data.role}`);
+
+      // Update UI with new employee
+      setEmployees((prev) => [
+        ...prev,
+        {
+          id: data.id,
+          name: newEmployee.name,
+          email: newEmployee.email,
+          designation: newEmployee.designation,
+          status: "Active",
+          role: newEmployee.role,
+        },
+      ]);
+
       setShowForm(false);
       setNewEmployee({
         name: "",
@@ -99,9 +116,8 @@ export default function EmployeeList() {
         designation: "",
         startDate: "",
         password: "",
+        role: "employee",
       });
-
-      // Optionally, you could refetch employees here
     } catch (err) {
       console.error("Add employee error:", err);
       alert("Server error. Please try again.");
@@ -336,6 +352,22 @@ export default function EmployeeList() {
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500"
                   placeholder="john@example.com"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Portal Role
+                </label>
+                <select
+                  name="role"
+                  value={newEmployee.role}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-200 focus:border-indigo-500"
+                >
+                  <option value="employee">Employee</option>
+                  <option value="hr">HR</option>
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

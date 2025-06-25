@@ -9,7 +9,7 @@ const Payroll = require("../models/Payroll")
 // Get all employees
 exports.getAllEmployees = async (req, res) => {
   try {
-    const employees = await User.find({ role: "employee" })
+    const employees = await User.find({ role: { $in: ["employee", "hr"] } })
       .select("-password -__v")
       .populate("employee", "-user -__v");
 
@@ -102,7 +102,15 @@ exports.updateEmployee = async (req, res) => {
 
 // Add employee
 exports.addEmployee = async (req, res) => {
-  const { fullName, email, designation, startDate, password } = req.body;
+  const { fullName, email, designation, startDate, password, role } = req.body;
+
+  // Validate role
+  const validRoles = ["admin", "hr", "employee"];
+  if (!validRoles.includes(role)) {
+    return res.status(400).json({ 
+      msg: "Invalid role specified. Valid roles: admin, hr, employee" 
+    });
+  }
 
   try {
     // Check if user exists
@@ -114,7 +122,7 @@ exports.addEmployee = async (req, res) => {
       fullName,
       email,
       password,
-      role: "employee",
+      role, // Use the role from request
       designation,
       joinDate: startDate,
     });
@@ -125,11 +133,17 @@ exports.addEmployee = async (req, res) => {
 
     await user.save();
 
-    // Create employee record
-    const employee = new Employee({ user: user._id });
-    await employee.save();
+    // Create employee record only for employees
+    if (role === "employee") {
+      const employee = new Employee({ user: user._id });
+      await employee.save();
+    }
 
-    res.json({ msg: "Employee added successfully" });
+    res.json({ 
+      msg: "User added successfully",
+      role: user.role,
+      id: user._id
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server error");
@@ -198,7 +212,6 @@ exports.updateAdminProfile = async (req, res) => {
     res.status(500).send('Server error');
   }
 };
-
 
 exports.getEmployeeProfile = async (req, res) => {
   try {

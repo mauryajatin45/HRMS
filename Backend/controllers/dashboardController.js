@@ -10,20 +10,20 @@ exports.getDashboardStats = async (req, res) => {
     const todayStart = moment().tz("Asia/Kolkata").startOf("day").toDate();
     const todayEnd = moment().tz("Asia/Kolkata").endOf("day").toDate();
 
-    // Total employees
-    const totalEmployees = await User.countDocuments({
-      role: "employee",
+    // Total active employees and HRs
+    const totalStaff = await User.countDocuments({
+      role: { $in: ["employee", "hr"] },
       isActive: true,
     });
 
     // Present today
-    const presentEmployees = await Attendance.countDocuments({
+    const presentStaff = await Attendance.countDocuments({
       date: { $gte: todayStart, $lte: todayEnd },
       status: { $in: ["present", "late"] },
     });
 
-    // Absent today (total active employees - present)
-    const absentEmployees = totalEmployees - presentEmployees;
+    // Absent = total - present
+    const absentStaff = totalStaff - presentStaff;
 
     // Recent leave requests (last 7 days)
     const recentLeaves = await Leave.find({
@@ -31,29 +31,43 @@ exports.getDashboardStats = async (req, res) => {
     })
       .sort({ createdAt: -1 })
       .limit(5)
-      .populate("user", "fullName email");
+      .populate({
+        path: "user",
+        select: "fullName email role",
+        match: { role: { $in: ["employee", "hr"] } },
+      });
+
+    // Filter out leaves with no matched user (other roles)
+    const filteredLeaves = recentLeaves.filter(l => l.user);
 
     // Today's attendance
     const todayAttendance = await Attendance.find({
       date: { $gte: todayStart, $lte: todayEnd },
     })
-      .populate("user", "fullName email designation")
+      .populate({
+        path: "user",
+        select: "fullName email designation role",
+        match: { role: { $in: ["employee", "hr"] } },
+      })
       .sort({ clockIn: -1 });
+
+    const filteredAttendance = todayAttendance.filter(a => a.user);
 
     res.json({
       stats: {
-        totalEmployees,
-        presentToday: presentEmployees,
-        absentToday: absentEmployees,
+        totalStaff,
+        presentToday: presentStaff,
+        absentToday: absentStaff,
       },
-      recentLeaves,
-      todayAttendance,
+      recentLeaves: filteredLeaves,
+      todayAttendance: filteredAttendance,
     });
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server error");
   }
 };
+
 
 // Approve/reject leave from dashboard
 exports.processLeaveRequest = async (req, res) => {
@@ -64,16 +78,21 @@ exports.processLeaveRequest = async (req, res) => {
     const leave = await Leave.findById(id).populate("user");
     if (!leave) return res.status(404).json({ msg: "Leave request not found" });
 
-    // Check if leave is already processed
+    // Ensure only employee or HR leave requests are processed
+    if (!["employee", "hr"].includes(leave.user.role)) {
+      return res.status(403).json({ msg: "Cannot process leave for this role" });
+    }
+
+    // Check if leave already processed
     if (leave.status !== "pending") {
       return res.status(400).json({ msg: "Leave request already processed" });
     }
 
-    // Update leave status
+    // Update status
     leave.status = status;
     await leave.save();
 
-    // Deduct leave balance if approved
+    // Deduct leave if approved
     if (status === "approved") {
       const employee = await Employee.findOne({ user: leave.user._id });
       if (!employee)
@@ -89,23 +108,25 @@ exports.processLeaveRequest = async (req, res) => {
     }
 
     // Return updated dashboard data
-    const todayStart = moment().tz("Asia/Kolkata").startOf("day").toDate();
-    const todayEnd = moment().tz("Asia/Kolkata").endOf("day").toDate();
-
     const recentLeaves = await Leave.find({
       createdAt: { $gte: moment().subtract(7, "days").toDate() },
     })
       .sort({ createdAt: -1 })
       .limit(5)
-      .populate("user", "fullName email");
+      .populate({
+        path: "user",
+        select: "fullName email role",
+        match: { role: { $in: ["employee", "hr"] } },
+      });
+
+    const filteredLeaves = recentLeaves.filter(l => l.user);
 
     res.json({
       message: `Leave request ${status}`,
-      recentLeaves,
+      recentLeaves: filteredLeaves,
     });
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server error");
   }
 };
-
