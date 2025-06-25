@@ -6,9 +6,17 @@ const { DOMAIN } = require('../config/emailDomain');
 
 // Admin signup
 exports.signupAdmin = async (req, res) => {
-  const { email, password, fullName, phoneNumber, businessName, gstNumber, businessAddress } = req.body;
+  const { 
+    email, 
+    password, 
+    fullName, 
+    phoneNumber, 
+    businessName, 
+    gstNumber, 
+    businessAddress 
+  } = req.body;
 
-  if (!email.endsWith('@shivaurica.com')) {
+  if (!email.endsWith(DOMAIN)) {
     return res.status(400).json({ msg: 'Invalid email domain' });
   }
 
@@ -21,7 +29,10 @@ exports.signupAdmin = async (req, res) => {
       password,
       role: 'admin',
       fullName,
-      phoneNumber
+      phoneNumber,
+      businessName,
+      gstNumber,
+      businessAddress
     });
 
     const salt = await bcrypt.genSalt(10);
@@ -31,7 +42,7 @@ exports.signupAdmin = async (req, res) => {
 
     // Create token
     const payload = { id: user.id };
-    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' }, (err, token) => {
+    jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' }, (err, token) => {
       if (err) throw err;
       res.json({ token });
     });

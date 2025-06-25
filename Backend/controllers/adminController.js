@@ -128,4 +128,68 @@ exports.addEmployee = async (req, res) => {
   }
 };
 
+// Get admin profile
+exports.getAdminProfile = async (req, res) => {
+  try {
+    const admin = await User.findById(req.user.id)
+      .select('-password -__v -isActive -designation -department -joinDate');
+    
+    if (!admin) {
+      return res.status(404).json({ msg: 'Admin not found' });
+    }
+    
+    if (admin.role !== 'admin') {
+      return res.status(403).json({ msg: 'Access forbidden' });
+    }
+
+    res.json(admin);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+// Update admin profile
+exports.updateAdminProfile = async (req, res) => {
+  const { 
+    fullName, 
+    phoneNumber, 
+    businessName, 
+    gstNumber, 
+    businessAddress 
+  } = req.body;
+
+  try {
+    const admin = await User.findById(req.user.id);
+    
+    if (!admin) {
+      return res.status(404).json({ msg: 'Admin not found' });
+    }
+    
+    if (admin.role !== 'admin') {
+      return res.status(403).json({ msg: 'Access forbidden' });
+    }
+
+    // Update fields
+    if (fullName) admin.fullName = fullName;
+    if (phoneNumber) admin.phoneNumber = phoneNumber;
+    if (businessName) admin.businessName = businessName;
+    if (gstNumber) admin.gstNumber = gstNumber;
+    if (businessAddress) admin.businessAddress = businessAddress;
+    
+    await admin.save();
+    
+    // Return updated profile without sensitive fields
+    const updatedAdmin = admin.toObject();
+    delete updatedAdmin.password;
+    delete updatedAdmin.__v;
+    
+    res.json(updatedAdmin);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+
 // Other admin methods: manageEmployees, addPayroll, etc.
