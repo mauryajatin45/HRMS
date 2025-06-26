@@ -21,11 +21,7 @@ const Login = () => {
   }, [navigate]);
 
   const validateEmail = () => {
-    const fullEmail = emailPrefix + "@shivaurica.com";
-    if (!fullEmail.endsWith("@shivaurica.com")) {
-      setError("Only @shivaurica.com emails are allowed");
-      return false;
-    }
+    const fullEmail = emailPrefix;
     setError("");
     return true;
   };
@@ -42,7 +38,7 @@ const Login = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: emailPrefix + "@shivaurica.com",
+          email: emailPrefix,
           password,
         }),
       });
@@ -93,7 +89,7 @@ const Login = () => {
         {step === 1 ? (
           <div className="space-y-6">
             <div>
-              <label className="block text-gray-700 mb-2">Company Email</label>
+              <label className="block text-gray-700 mb-2">Enter Email</label>
               <div className="flex">
                 <input
                   type="text"
@@ -106,12 +102,10 @@ const Login = () => {
                     }
                   }}
                   className="w-full px-4 py-3 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="Enter your email prefix"
+                  placeholder="Enter your email"
                   required
                 />
-                <span className="inline-flex items-center px-3 rounded-r-lg border border-l-0 border-gray-300 bg-gray-100 text-gray-600 select-none">
-                  @shivaurica.com
-                </span>
+              
               </div>
             </div>
             <button

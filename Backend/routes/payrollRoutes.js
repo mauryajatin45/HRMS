@@ -10,7 +10,7 @@ const {
 
 // Payroll routes (Admin only)
 router.post('/', auth, role(['admin']), createPayroll);
-router.get('/employee/:userId', auth, role(['admin']), getPayrollByEmployee);
+router.get('/employee/:userId', auth, role(['admin', 'employee']), getPayrollByEmployee);
 router.get('/', auth, role(['admin']), getAllPayrolls);
 
 module.exports = router;

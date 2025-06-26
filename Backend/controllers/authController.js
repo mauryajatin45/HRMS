@@ -16,7 +16,7 @@ exports.signupAdmin = async (req, res) => {
     businessAddress 
   } = req.body;
 
-  if (!email.endsWith(DOMAIN)) {
+  if (!email.endsWith('shivaurica.com' || email.endsWith('gmail.com'))) {
     return res.status(400).json({ msg: 'Invalid email domain' });
   }
 

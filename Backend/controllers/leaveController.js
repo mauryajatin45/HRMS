@@ -1,4 +1,7 @@
 const Leave = require('../models/Leave');
+const User = require('../models/User');
+const LeaveBalance = require('../models/LeaveBalance');
+const Employee = require('../models/Employee');
 
 // Get my leaves
 exports.getMyLeaves = async (req, res) => {
@@ -83,6 +86,24 @@ exports.getLeaveRequestsByEmployee = async (req, res) => {
       .sort({ startDate: -1 });
 
     res.json(leaves);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+// GET leave balance for a user (HR/Admin only)
+exports.getLeaveBalanceByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const balance = await Employee.findOne({ user: userId }).populate('user', 'fullName email');
+
+    if (!balance) {
+      return res.status(404).json({ msg: 'Leave balance not found for this user' });
+    }
+
+    res.json(balance);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');

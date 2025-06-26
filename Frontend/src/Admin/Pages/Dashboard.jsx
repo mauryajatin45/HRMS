@@ -5,6 +5,32 @@ export default function Dashboard() {
   const [stats, setStats] = useState({ totalEmployees: 0, presentToday: 0, absentToday: 0 });
   const [recentLeaves, setRecentLeaves] = useState([]);
   const [todayAttendance, setTodayAttendance] = useState([]);
+  const [employees, setEmployees] = useState([]);
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const res = await fetch(
+            `${import.meta.env.VITE_API_BASE_URL}/admin/employees`,
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+          }
+        );
+        const data = await res.json();
+        if (res.ok) setEmployees(data);
+        else alert(data.msg || "Failed to load employees");
+      } catch (err) {
+        console.error("Error fetching employees:", err);
+        alert("Server error fetching employees");
+      }
+    };
+
+    fetchEmployees();
+  }, []);
+
+  const totalEmployees = employees.length;
 
   useEffect(() => {
     const timer = setInterval(() => setDateTime(new Date()), 1000);
@@ -86,7 +112,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl shadow p-6 text-center">
           <p className="text-gray-500">Total Employees</p>
-          <h2 className="text-3xl text-blue-600 font-bold">{stats.totalEmployees}</h2>
+          <h2 className="text-3xl text-blue-600 font-bold">{totalEmployees}</h2>
         </div>
         <div className="bg-white rounded-xl shadow p-6 text-center">
           <p className="text-gray-500">Present Today</p>

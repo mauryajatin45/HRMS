@@ -1,16 +1,27 @@
 // src/pages/Reports.js
 import { useState, useEffect } from "react";
+import { jwtDecode } from "jwt-decode";
 
 export default function Reports() {
   const [selectedMonth, setSelectedMonth] = useState("2025-06");
   const [activeTab, setActiveTab] = useState("attendance");
   const [attendanceData, setAttendanceData] = useState([]);
   const [loading, setLoading] = useState(false);
-
+  const [leaveBalances, setLeaveBalances] = useState({
+    casual: { taken: 0, total: 0, remaining: 0 },
+    sick: { taken: 0, total: 0, remaining: 0 },
+  });
   const [attendanceSummary, setAttendanceSummary] = useState({
     present: 0,
     absent: 0,
     late: 0,
+  });
+  const [salaryData, setSalaryData] = useState([]);
+  const [salaryLoading, setSalaryLoading] = useState(false);
+  const [salarySummary, setSalarySummary] = useState({
+    current: 0,
+    average: 0,
+    total: 0,
   });
 
   useEffect(() => {
@@ -59,62 +70,147 @@ export default function Reports() {
     fetchAttendance();
   }, [selectedMonth]);
 
-  const salaryData = [
-    {
-      date: "2023-01-05",
-      base: 5000,
-      incentives: 500,
-      deductions: 200,
-      net: 5300,
-    },
-    {
-      date: "2023-02-05",
-      base: 5000,
-      incentives: 300,
-      deductions: 150,
-      net: 5150,
-    },
-    {
-      date: "2023-03-05",
-      base: 5000,
-      incentives: 700,
-      deductions: 100,
-      net: 5600,
-    },
-    {
-      date: "2023-04-05",
-      base: 5200,
-      incentives: 600,
-      deductions: 250,
-      net: 5550,
-    },
-    {
-      date: "2023-05-05",
-      base: 5200,
-      incentives: 450,
-      deductions: 180,
-      net: 5470,
-    },
-    {
-      date: "2023-06-05",
-      base: 5200,
-      incentives: 800,
-      deductions: 120,
-      net: 5880,
-    },
-  ];
+  const [leaveHistory, setLeaveHistory] = useState([]);
+  const [leaveLoading, setLeaveLoading] = useState(false);
 
-  const leaveBalances = {
-    sickLeave: { total: 12, taken: 2, remaining: 10 },
-    casualLeave: { total: 10, taken: 4, remaining: 6 },
-    maternityLeave: { total: 180, taken: 0, remaining: 180 },
-    paternityLeave: { total: 30, taken: 0, remaining: 30 },
-  };
+  useEffect(() => {
+    const fetchLeaveData = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      try {
+        const decoded = jwtDecode(token);
+        const userId = decoded.id || decoded._id || decoded.userId;
+
+        // 1. Fetch leave balances
+        const balanceRes = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/leave/balance/${userId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        const balanceData = await balanceRes.json();
+
+        const casualLeaves = 7;
+        const sickLeaves = 7;
+
+        setLeaveBalances({
+          casual: {
+            total: casualLeaves,
+            taken: casualLeaves - (balanceData.casualLeaves || 0),
+            remaining: balanceData.casualLeaves || 0,
+          },
+          sick: {
+            total: sickLeaves,
+            taken: sickLeaves - (balanceData.sickLeaves || 0),
+            remaining: balanceData.sickLeaves || 0,
+          },
+        });
+
+        // 2. Fetch leave history
+        const leaveRes = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/employee/leave`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        if (!leaveRes.ok) {
+          throw new Error("Failed to fetch leave history");
+        }
+
+        const leaveData = await leaveRes.json();
+        setLeaveHistory(leaveData);
+      } catch (err) {
+        console.error("Error fetching leave data:", err);
+        setLeaveHistory([]);
+        setLeaveBalances({
+          casual: { taken: 0, total: 7, remaining: 7 },
+          sick: { taken: 0, total: 7, remaining: 7 },
+        });
+      } finally {
+        setLeaveLoading(false);
+      }
+    };
+
+    setLeaveLoading(true);
+    fetchLeaveData();
+  }, []);
 
   // Calculate attendance rate
   const attendanceRate = Math.round(
     (attendanceSummary.present / attendanceData.length) * 100
   );
+
+  useEffect(() => {
+    const fetchSalaryData = async () => {
+      if (activeTab !== "salary") return;
+
+      setSalaryLoading(true);
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      try {
+        const decoded = jwtDecode(token);
+        const userId = decoded.id || decoded._id || decoded.userId;
+
+        const response = await fetch(
+          `${import.meta.env.VITE_API_BASE_URL}/payroll/employee/${userId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch salary data");
+        }
+
+        const payrolls = await response.json();
+
+        // Process last 6 months of salary data
+        const processedData = payrolls
+          .slice(0, 6) // Get last 6 records
+          .map((payroll) => {
+            const deductions = payroll.deductions.reduce(
+              (sum, d) => sum + d.amount,
+              0
+            );
+
+            return {
+              id: payroll._id,
+              date: new Date(payroll.paymentDate).toISOString().split("T")[0],
+              base: payroll.baseSalary,
+              overtime: payroll.overtime,
+              bonus: payroll.bonus,
+              deductions: deductions,
+              net: payroll.netPay,
+              status: payroll.status,
+              method: payroll.paymentMethod,
+            };
+          })
+          .reverse(); // Show oldest first
+
+        setSalaryData(processedData);
+
+        // Calculate summary stats
+        if (processedData.length > 0) {
+          const current = processedData[processedData.length - 1].net;
+          const total = processedData.reduce((sum, item) => sum + item.net, 0);
+          const average = Math.round(total / processedData.length);
+
+          setSalarySummary({ current, average, total });
+        }
+      } catch (err) {
+        console.error("Error fetching salary data:", err);
+      } finally {
+        setSalaryLoading(false);
+      }
+    };
+
+    fetchSalaryData();
+  }, [activeTab]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -300,24 +396,21 @@ export default function Reports() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <SummaryCard
               title="Current Salary"
-              value={`$${salaryData[5].net}`}
+              value={`₹${salarySummary.current.toLocaleString()}`}
               description="Net pay this month"
               iconColor="bg-blue-100"
               textColor="text-blue-800"
             />
             <SummaryCard
               title="Average Salary"
-              value={`$${Math.round(
-                salaryData.reduce((sum, item) => sum + item.net, 0) /
-                  salaryData.length
-              )}`}
+              value={`₹${salarySummary.average.toLocaleString()}`}
               description="Last 6 months"
               iconColor="bg-purple-100"
               textColor="text-purple-800"
             />
             <SummaryCard
               title="Total Earnings"
-              value={`$${salaryData.reduce((sum, item) => sum + item.net, 0)}`}
+              value={`₹${salarySummary.total.toLocaleString()}`}
               description="Last 6 months"
               iconColor="bg-green-100"
               textColor="text-green-800"
@@ -327,74 +420,98 @@ export default function Reports() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-gray-900">
-                Salary History (Last 6 Months)
+                Salary History (Last {salaryData.length} Months)
               </h2>
-              <div className="flex gap-2">
-                <button className="text-sm font-medium text-blue-600 hover:text-blue-800">
-                  View Payslips
-                </button>
-              </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Date
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Base Salary
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Incentives
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Deductions
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                    >
-                      Net Pay
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {salaryData.map((salary, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {salary.date}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        ${salary.base}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-green-500">
-                        +${salary.incentives}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-red-500">
-                        -${salary.deductions}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                        ${salary.net}
-                      </td>
+            {salaryLoading ? (
+              <div className="text-center py-8">
+                <p>Loading salary data...</p>
+              </div>
+            ) : salaryData.length === 0 ? (
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                <div className="flex items-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 text-blue-500 mr-2"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <p className="text-blue-700">No salary records found</p>
+                </div>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Base Salary
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Overtime
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Bonus
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Deductions
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Net Pay
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {salaryData.map((salary) => (
+                      <tr key={salary.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {salary.date}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          ₹{salary.base.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-green-500">
+                          +₹{salary.overtime.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-green-500">
+                          +₹{salary.bonus.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-red-500">
+                          -₹{salary.deductions.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                          ₹{salary.net.toLocaleString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-medium ${
+                              salary.status === "Paid"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {salary.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -402,6 +519,7 @@ export default function Reports() {
       {/* Leaves Tab */}
       {activeTab === "leaves" && (
         <div>
+          {/* Leave Balance Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {Object.entries(leaveBalances).map(([type, data]) => (
               <LeaveBalanceCard
@@ -416,29 +534,79 @@ export default function Reports() {
             ))}
           </div>
 
+          {/* Leave History */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
               Leave History
             </h2>
-            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
-              <div className="flex items-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-blue-500 mr-2"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <p className="text-blue-700">
-                  No leave requests found for {selectedMonth}
-                </p>
+
+            {leaveLoading ? (
+              <p className="text-gray-500">Loading leave history...</p>
+            ) : leaveHistory.length === 0 ? (
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                <div className="flex items-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 text-blue-500 mr-2"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <p className="text-blue-700">No leave requests found</p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200 text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left font-medium text-gray-500">
+                        Leave Type
+                      </th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-500">
+                        Dates
+                      </th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-500">
+                        Reason
+                      </th>
+                      <th className="px-4 py-2 text-left font-medium text-gray-500">
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {leaveHistory.map((leave) => (
+                      <tr key={leave._id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 capitalize">{leave.type}</td>
+                        <td className="px-4 py-3">
+                          {new Date(leave.startDate).toLocaleDateString()} -{" "}
+                          {new Date(leave.endDate).toLocaleDateString()}
+                        </td>
+                        <td className="px-4 py-3">{leave.reason}</td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-medium ${
+                              leave.status === "approved"
+                                ? "bg-green-100 text-green-700"
+                                : leave.status === "rejected"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-yellow-100 text-yellow-700"
+                            }`}
+                          >
+                            {leave.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
