@@ -1,26 +1,29 @@
 import { jwtDecode } from 'jwt-decode';
 
-export const getToken = () => localStorage.getItem('token');
-
-export const getRole = () => localStorage.getItem('role');
-
-export const getUser = () => {
+export function isTokenExpired(token) {
+  if (!token) return true;
   try {
-    const token = getToken();
-    return token ? jwtDecode(token) : null;
-  } catch {
-    return null;
+    const decoded = jwtDecode(token);
+    if (!decoded.exp) return true;
+    const currentTime = Date.now() / 1000; // in seconds
+    return decoded.exp < currentTime;
+  } catch (error) {
+    return true;
   }
-};
+}
 
-export const isAdminLoggedIn = () => getRole() === 'admin' && !!getToken();
+export function isAdminLoggedIn() {
+  const token = localStorage.getItem('token');
+  const role = localStorage.getItem('role');
+  if (!token || !role) return false;
+  if (isTokenExpired(token)) return false;
+  return role === 'admin';
+}
 
-export const isHRLoggedIn = () => getRole() === 'hr' && !!getToken();
-
-export const isEmployeeLoggedIn = () => getRole() === 'employee' && !!getToken();
-
-export const logout = () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('role');
-  localStorage.removeItem('userId');
-};
+export function isHRLoggedIn() {
+  const token = localStorage.getItem('token');
+  const role = localStorage.getItem('role');
+  if (!token || !role) return false;
+  if (isTokenExpired(token)) return false;
+  return role === 'hr';
+}

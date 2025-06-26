@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
+import { isTokenExpired } from "../utils/auth";
 
 const Login = () => {
   const [step, setStep] = useState(1);
@@ -8,6 +9,16 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+    if (token && !isTokenExpired(token)) {
+      if (role === "admin") navigate("/admin/dashboard", { replace: true });
+      else if (role === "hr") navigate("/hr/dashboard", { replace: true });
+      else navigate("/employee/dashboard", { replace: true });
+    }
+  }, [navigate]);
 
   const validateEmail = () => {
     const fullEmail = emailPrefix + "@shivaurica.com";

@@ -1,5 +1,5 @@
 import { Home, Users, CalendarDays, FileText, BarChart2, User, LogOut } from 'lucide-react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 
 const navItems = [
   { name: 'Dashboard', icon: Home, link: '/hr/dashboard' },
@@ -8,13 +8,28 @@ const navItems = [
   { name: 'Leave', icon: FileText, link: '/hr/leave' },
   { name: 'Reports', icon: BarChart2, link: '/hr/reports' , matchPrefix: '/hr/reports' },
   { name: 'Profile', icon: User, link: '/hr/profile' },
-  { name: 'Logout', icon: LogOut, link: '/logout' }
+  // Remove the link from Logout, will handle logout on click
+  { name: 'Logout', icon: LogOut }
 ];
 
 export default function Sidebar({ sidebarOpen, closeSidebar }) {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const handleClick = () => {
+    if (closeSidebar) {
+      closeSidebar();
+    }
+  };
+
+  // New logout handler
+  const handleLogout = () => {
+    // Clear localStorage keys related to auth
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    localStorage.removeItem('userId');
+    // Redirect to login page
+    navigate('/login', { replace: true });
     if (closeSidebar) {
       closeSidebar();
     }
@@ -32,6 +47,19 @@ export default function Sidebar({ sidebarOpen, closeSidebar }) {
         const isActive = matchPrefix
           ? location.pathname.startsWith(matchPrefix)
           : location.pathname === link;
+
+        if (name === 'Logout') {
+          return (
+            <button
+              key={name}
+              onClick={handleLogout}
+              className={`flex items-center gap-3 px-3 py-2 rounded font-medium transition text-gray-700 hover:text-blue-600 w-full text-left`}
+            >
+              <Icon size={18} />
+              {name}
+            </button>
+          );
+        }
 
         return (
           <Link
