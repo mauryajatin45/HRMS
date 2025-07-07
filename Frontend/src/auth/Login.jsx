@@ -67,21 +67,21 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-red-500 to-red-700 px-4">
-      <title>Login - Shivaurica</title>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-700 px-4">
+      <title>Login - HRMS</title>
       <form
         onSubmit={handleSubmit}
         className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-red-700">Shivaurica</h1>
+          <h1 className="text-3xl font-bold text-blue-600">HRMS</h1>
           <p className="text-gray-600 mt-2">
             Enter your credentials to continue
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
+          <div className="mb-4 p-3 bg-red-100 text-blue-600 rounded-lg">
             {error}
           </div>
         )}
@@ -111,7 +111,7 @@ const Login = () => {
             <button
               type="button"
               onClick={() => validateEmail() && setStep(2)}
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 cursor-pointer"
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 cursor-pointer"
             >
               Continue
             </button>
@@ -133,13 +133,13 @@ const Login = () => {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="text-red-600 hover:text-red-800 font-medium cursor-pointer"
+                className="text-blue-500 hover:text-blue-600 font-medium cursor-pointer"
               >
                 Back
               </button>
               <button
                 type="submit"
-                className="bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg cursor-pointer transition duration-300"
+                className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg cursor-pointer transition duration-300"
               >
                 Sign In
               </button>
@@ -148,8 +148,7 @@ const Login = () => {
         )}
 
         <div className="mt-8 text-center text-gray-600 text-sm">
-          <p>Use company-provided credentials</p>
-          <p className="mt-2">© 2025 Shivaurica. All rights reserved</p>
+         <a href="/credentials">Get Login Credentials</a>
         </div>
       </form>
     </div>
